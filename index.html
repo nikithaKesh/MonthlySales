@@ -18,7 +18,8 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+html,body{overflow-x:clip}
+body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px 80px}
 .tnum{font-variant-numeric:tabular-nums}
@@ -33,7 +34,9 @@ header{padding:34px 24px 0;max-width:1180px;margin:0 auto}
 /* Controls */
 .controls{position:sticky;top:0;z-index:20;background:linear-gradient(var(--paper) 78%,rgba(244,242,239,0));padding:18px 24px 14px;margin:22px auto 0;max-width:1180px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end}
 .ctl-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px;display:block}
-.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:4px;gap:3px;box-shadow:var(--shadow)}
+.controls>div{min-width:0;max-width:100%}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:4px;gap:3px;box-shadow:var(--shadow);max-width:100%;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
 .seg button{font-family:inherit;font-size:13px;font-weight:500;color:var(--ink-soft);background:none;border:none;padding:7px 15px;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
 .seg button:hover{color:var(--ink)}
 .seg button.on{background:var(--accent);color:#fff}
@@ -61,7 +64,7 @@ nav.sections a.on{color:var(--accent);border-bottom-color:var(--accent)}
 /* KPI */
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
 .kpi .k-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.kpi .k-val{font-family:Fraunces,serif;font-size:30px;font-weight:600;margin-top:6px;line-height:1}
+.kpi .k-val{font-family:Fraunces,serif;font-size:30px;font-weight:600;margin-top:6px;line-height:1.05;overflow-wrap:anywhere}
 .kpi .k-sub{font-size:12px;color:var(--ink-soft);margin-top:7px}
 .kpi.hero{background:var(--accent-tint);border-color:var(--accent-soft)}
 .kpi.hero .k-val{color:var(--accent)}
@@ -83,7 +86,7 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .dot{fill:var(--accent)}
 
 /* table */
-.tbl-scroll{overflow-x:auto;margin:0 -6px}
+.tbl-scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:12.5px}
 th,td{padding:8px 10px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
@@ -111,16 +114,49 @@ td.tot{font-weight:700}
 .section-sub{color:var(--muted);font-size:13px;margin:0 0 6px}
 footer{max-width:1180px;margin:60px auto 0;padding:22px 24px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
 
+.chart-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chart-wrap::-webkit-scrollbar{height:6px}
+.chart-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+
+@media(max-width:1024px){
+  .wrap,header,.controls,nav.sections,footer{padding-left:20px;padding-right:20px}
+}
 @media(max-width:900px){
   .cols-4{grid-template-columns:1fr 1fr}
   .cols-2{grid-template-columns:1fr}
-  .bar-row{grid-template-columns:110px 1fr 48px}
+  .bar-row{grid-template-columns:120px 1fr 50px}
 }
-@media(max-width:560px){
-  .cols-4{grid-template-columns:1fr 1fr}
-  .brandline h1{font-size:24px}
-  .wrap{padding:0 14px 60px}
-  header,.controls,nav.sections{padding-left:14px;padding-right:14px}
+@media(max-width:640px){
+  .brandline h1{font-size:23px}
+  .brandline{gap:6px}
+  .eyebrow{margin-bottom:4px}
+  header{padding-top:24px}
+  .wrap{padding:0 14px 56px}
+  header,.controls,nav.sections,footer{padding-left:14px;padding-right:14px}
+  .controls{gap:12px;padding:12px 14px}
+  .ctl-label{margin-bottom:5px}
+  .seg button{padding:8px 13px}
+  nav.sections{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  nav.sections::-webkit-scrollbar{display:none}
+  nav.sections a{white-space:nowrap;padding:10px 11px}
+  .grid{gap:12px}
+  .card{padding:16px 15px;border-radius:14px}
+  .card h3{font-size:15px}
+  .kpi{padding:15px}
+  .kpi .k-val{font-size:25px}
+  .section{scroll-margin-top:172px}
+  .section-title{margin:26px 0 2px}
+  .section-title h2{font-size:19px}
+  .chart.wide{min-width:520px}
+  /* stack each bar row: label on its own line, bar + value beneath */
+  .bar-row{grid-template-columns:1fr 46px;grid-template-areas:"lab lab" "bar val";gap:5px 10px;margin-bottom:2px}
+  .bar-row .lab{grid-area:lab;white-space:normal;overflow:visible;line-height:1.25}
+  .bar-track{grid-area:bar}
+  .bar-row .val{grid-area:val;align-self:center}
+}
+@media(max-width:400px){
+  .cols-4{grid-template-columns:1fr}
+  .kpi .k-val{font-size:28px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -218,7 +254,7 @@ function groupedBars(series,labels,names){
       bars+=`<rect x="${bx}" y="${padT+ih-bh}" width="${bw-2}" height="${bh}" rx="3" fill="${colors[si]}"><title>${s.name} · ${l}: ${fmt(s.values[gi])}</title></rect>`;
     });
   });
-  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${grid}${bars}${ax}</svg>`;
+  return `<svg class="chart wide" viewBox="0 0 ${w} ${h}">${grid}${bars}${ax}</svg>`;
 }
 function palette(n){
   const base=['var(--accent)','#B0863A','#5C7FB0','#9E6BB0','#54A0A0','#C0705A','#7B9E54','#B05470'];
@@ -506,7 +542,7 @@ function kpi(label,val,sub,hero){const e=el('div','kpi'+(hero?' hero':''));e.inn
 function card(title,hint){const c=el('div','card');if(title!==''||hint!==''){c.innerHTML=`<h3>${title}</h3>${hint?`<div class="hint">${hint}</div>`:''}`;}return c;}
 function sectionTitle(num,title,sub){const w=el('div');const t=el('div','section-title');t.innerHTML=`<span class="num">${num}</span><h2>${title}</h2>`;w.append(t);if(sub)w.append(el('p','section-sub',sub));return w;}
 function legend(names){const l=el('div','legend');const cols=palette(names.length);names.forEach((n,i)=>{const s=el('span');s.innerHTML=`<b style="background:${cols[i]}"></b>${esc(n)}`;l.append(s);});return l;}
-function rangeToNode(html){const d=el('div');d.innerHTML=html;return d;}
+function rangeToNode(html){const d=el('div','chart-wrap');d.innerHTML=html;return d;}
 function rowFromVals(name,vals,tot){const maxCell=Math.max(1,...vals);const tr=el('tr');
   tr.innerHTML=`<td title="${esc(name)}">${esc(name)}</td>`+vals.map(x=>`<td class="cellbar"><i style="width:${x/maxCell*100}%"></i><span>${x?fmt(x):'·'}</span></td>`).join('')+`<td class="tot">${fmt(tot)}</td>`;return tr;}
 
