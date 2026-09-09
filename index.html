@@ -272,7 +272,7 @@ function accentFor(brand){return brand==='Love&Lab'?'love':'biseka';}
 function setAccent(brand){
   const r=document.documentElement.style;
   if(brand==='Love&Lab'){r.setProperty('--accent','var(--love)');r.setProperty('--accent-soft','var(--love-soft)');r.setProperty('--accent-tint','var(--love-tint)');}
-  else if(brand==='Exact Extract'){r.setProperty('--accent','var(--extract)');r.setProperty('--accent-soft','var(--extract-soft)');r.setProperty('--accent-tint','var(--extract-tint)');}
+  else if(brand==='Trackings'){r.setProperty('--accent','var(--extract)');r.setProperty('--accent-soft','var(--extract-soft)');r.setProperty('--accent-tint','var(--extract-tint)');}
   else{r.setProperty('--accent','var(--biseka)');r.setProperty('--accent-soft','var(--biseka-soft)');r.setProperty('--accent-tint','var(--biseka-tint)');}
 }
 function cur(){return DATA.brands[STATE.brand].channels[STATE.channel];}
