@@ -119,7 +119,7 @@ footer{max-width:1180px;margin:60px auto 0;padding:22px 24px;border-top:1px soli
 .chart-wrap::-webkit-scrollbar{height:6px}
 .chart-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
 
-/* ---- Tracking's: brand-comparison visuals ---- */
+/* ---- Exact Extract: brand-comparison visuals ---- */
 .donut-panel{display:flex;justify-content:center;align-items:center;padding:8px 0 12px}
 svg.chart.donut{overflow:visible}
 .ee-hero{background:linear-gradient(135deg,var(--extract-tint),var(--surface));border:1px solid var(--extract-soft);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
@@ -272,7 +272,7 @@ function accentFor(brand){return brand==='Love&Lab'?'love':'biseka';}
 function setAccent(brand){
   const r=document.documentElement.style;
   if(brand==='Love&Lab'){r.setProperty('--accent','var(--love)');r.setProperty('--accent-soft','var(--love-soft)');r.setProperty('--accent-tint','var(--love-tint)');}
-  else if(brand==='Tracking's'){r.setProperty('--accent','var(--extract)');r.setProperty('--accent-soft','var(--extract-soft)');r.setProperty('--accent-tint','var(--extract-tint)');}
+  else if(brand==='Exact Extract'){r.setProperty('--accent','var(--extract)');r.setProperty('--accent-soft','var(--extract-soft)');r.setProperty('--accent-tint','var(--extract-tint)');}
   else{r.setProperty('--accent','var(--biseka)');r.setProperty('--accent-soft','var(--biseka-soft)');r.setProperty('--accent-tint','var(--biseka-tint)');}
 }
 function cur(){return DATA.brands[STATE.brand].channels[STATE.channel];}
@@ -387,7 +387,7 @@ const SECTIONS=[
   {id:'payments',name:'Payments & Status', build:secPay, when:d=>d.paymentMonthly},
   {id:'bis-tracking',name:'BIS Tracking', build:()=>secTrackDetail('bis'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
   {id:'lovelab-tracking',name:'Lovelab Tracking', build:()=>secTrackDetail('lovelab'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
-  {id:'exact-extract',name:'Tracking's', build:secExactExtract, when:d=>d.isExactExtract},
+  {id:'exact-extract',name:'Combined Trackings', build:secExactExtract, when:d=>d.isExactExtract},
 ];
 
 function secOverview(d){
@@ -886,10 +886,10 @@ function secExactExtract(){
   if(raw.bis)brands.push({key:'bis',name:'Biseka',color:'var(--biseka)',data:raw.bis});
   if(raw.lovelab)brands.push({key:'lovelab',name:'Love&Lab',color:'var(--love)',data:raw.lovelab});
   const sec=el('section','section');sec.id='sec-exact-extract';
-  sec.append(sectionTitle('','Biseka, Love&Lab — Tracking's',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
+  sec.append(sectionTitle('','Biseka, Love&Lab — Trackings',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
 
   const heroWrap=el('div');heroWrap.style.marginBottom='16px';
-  heroWrap.innerHTML=`<div class="ee-hero"><span class="ee-badge">Tracking's</span><span style="color:var(--ink-soft);font-size:13px">Every number on this tab comes straight from ${brands.map(b=>b.name).join(' and ')} tracking sheets — no order data involved.</span></div>`;
+  heroWrap.innerHTML=`<div class="ee-hero"><span class="ee-badge">Trackings</span><span style="color:var(--ink-soft);font-size:13px">Every number on this tab comes straight from ${brands.map(b=>b.name).join(' and ')} tracking sheets — no order data involved.</span></div>`;
   sec.append(heroWrap);
 
   const totalShip=brands.reduce((s,b)=>s+pick(b.data.totalMonthly),0);
@@ -975,9 +975,9 @@ function rowFromVals(name,vals,tot){const maxCell=Math.max(1,...vals);const tr=e
 function buildControls(){
   const bs=$('#brandSeg');bs.innerHTML='';
   Object.keys(DATA.brands).forEach(b=>{const btn=el('button',b===STATE.brand?'on':'',b);btn.onclick=()=>{STATE.brand=b;STATE.channel=Object.keys(DATA.brands[b].channels)[0];render();};bs.append(btn);});
-  if(!DATA.brands['Tracking's']){
+  if(!DATA.brands['Exact Extract']){
     // no tracking data available to build a combined view — keep it visible but disabled
-    const ee=el('button','',"Tracking's");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
+    const ee=el('button','',"Exact Extract");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
   }
 
   const cs=$('#chanSeg');cs.innerHTML='';
@@ -1202,7 +1202,7 @@ function buildDATA(wb){
   }
   if(LL){if(LLT)LL.tracking=LLT;brands['Love&Lab']={channels:{Online:LL}};}
   if(BIS||LLT){
-    brands['Tracking's']={channels:{Tracking:{months:labels,isExactExtract:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{}}}};
+    brands['Exact Extract']={channels:{Tracking:{months:labels,isExactExtract:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{}}}};
   }
   if(!Object.keys(brands).length)throw new Error("no recognizable order tabs (need biseka_online, biseka_shop, or lovelab).");
   const range=L?labels[0]+' – '+labels[L-1]:'—';
