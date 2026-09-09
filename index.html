@@ -387,7 +387,7 @@ const SECTIONS=[
   {id:'payments',name:'Payments & Status', build:secPay, when:d=>d.paymentMonthly},
   {id:'bis-tracking',name:'BIS Tracking', build:()=>secTrackDetail('bis'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
   {id:'lovelab-tracking',name:'Lovelab Tracking', build:()=>secTrackDetail('lovelab'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
-  {id:'exact-extract',name:'Combined Trackings', build:secExactExtract, when:d=>d.isExactExtract},
+  {id:'Trackings',name:'Combined Trackings', build:secExactExtract, when:d=>d.isExactExtract},
 ];
 
 function secOverview(d){
@@ -885,7 +885,7 @@ function secExactExtract(){
   const brands=[];
   if(raw.bis)brands.push({key:'bis',name:'Biseka',color:'var(--biseka)',data:raw.bis});
   if(raw.lovelab)brands.push({key:'lovelab',name:'Love&Lab',color:'var(--love)',data:raw.lovelab});
-  const sec=el('section','section');sec.id='sec-exact-extract';
+  const sec=el('section','section');sec.id='sec-trackings';
   sec.append(sectionTitle('','Biseka, Love&Lab — Trackings',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
 
   const heroWrap=el('div');heroWrap.style.marginBottom='16px';
@@ -975,9 +975,9 @@ function rowFromVals(name,vals,tot){const maxCell=Math.max(1,...vals);const tr=e
 function buildControls(){
   const bs=$('#brandSeg');bs.innerHTML='';
   Object.keys(DATA.brands).forEach(b=>{const btn=el('button',b===STATE.brand?'on':'',b);btn.onclick=()=>{STATE.brand=b;STATE.channel=Object.keys(DATA.brands[b].channels)[0];render();};bs.append(btn);});
-  if(!DATA.brands['Exact Extract']){
+  if(!DATA.brands['Trackings']){
     // no tracking data available to build a combined view — keep it visible but disabled
-    const ee=el('button','',"Exact Extract");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
+    const ee=el('button','',"Trackings");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
   }
 
   const cs=$('#chanSeg');cs.innerHTML='';
@@ -1202,7 +1202,7 @@ function buildDATA(wb){
   }
   if(LL){if(LLT)LL.tracking=LLT;brands['Love&Lab']={channels:{Online:LL}};}
   if(BIS||LLT){
-    brands['Exact Extract']={channels:{Tracking:{months:labels,isExactExtract:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{}}}};
+    brands['Trackings']={channels:{Tracking:{months:labels,isExactExtract:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{}}}};
   }
   if(!Object.keys(brands).length)throw new Error("no recognizable order tabs (need biseka_online, biseka_shop, or lovelab).");
   const range=L?labels[0]+' – '+labels[L-1]:'—';
