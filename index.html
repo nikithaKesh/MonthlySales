@@ -13,6 +13,7 @@
   --line:#E7E2DD; --line-soft:#F0ECE7; --muted:#8B8391;
   --biseka:#2E6B4E; --biseka-soft:#E4EEE8; --biseka-tint:#F1F7F3;
   --love:#C24E6B; --love-soft:#F6E3E9; --love-tint:#FBEFF3;
+  --extract:#4E6FA8; --extract-soft:#E5EAF4; --extract-tint:#F2F5FA;
   --gold:#B0863A; --shadow:0 1px 2px rgba(33,28,38,.04),0 8px 24px rgba(33,28,38,.06);
   --accent:var(--biseka); --accent-soft:var(--biseka-soft); --accent-tint:var(--biseka-tint);
 }
@@ -118,6 +119,19 @@ footer{max-width:1180px;margin:60px auto 0;padding:22px 24px;border-top:1px soli
 .chart-wrap::-webkit-scrollbar{height:6px}
 .chart-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
 
+/* ---- Tracking's: brand-comparison visuals ---- */
+.donut-panel{display:flex;justify-content:center;align-items:center;padding:8px 0 12px}
+svg.chart.donut{overflow:visible}
+.ee-hero{background:linear-gradient(135deg,var(--extract-tint),var(--surface));border:1px solid var(--extract-soft);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ee-hero .ee-badge{display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--extract);background:var(--extract-soft);border-radius:20px;padding:5px 12px}
+.dual-bars{display:flex;flex-direction:column;gap:16px}
+.dual-bar-row{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
+.dual-bar-row .dual-lab{font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dual-tracks{display:flex;flex-direction:column;gap:5px}
+.dual-track{position:relative;background:var(--line-soft);border-radius:6px;height:17px;overflow:hidden}
+.dual-fill{height:100%;border-radius:6px;width:0;transition:width .6s cubic-bezier(.2,.7,.2,1)}
+.dual-val{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10.5px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;text-shadow:0 0 4px var(--surface),0 0 4px var(--surface)}
+
 @media(max-width:1024px){
   .wrap,header,.controls,nav.sections,footer{padding-left:20px;padding-right:20px}
 }
@@ -153,6 +167,9 @@ footer{max-width:1180px;margin:60px auto 0;padding:22px 24px;border-top:1px soli
   .bar-row .lab{grid-area:lab;white-space:normal;overflow:visible;line-height:1.25}
   .bar-track{grid-area:bar}
   .bar-row .val{grid-area:val;align-self:center}
+  .dual-bar-row{grid-template-columns:1fr;gap:5px}
+  .dual-bar-row .dual-lab{white-space:normal}
+  .ee-hero{padding:16px}
 }
 @media(max-width:400px){
   .cols-4{grid-template-columns:1fr}
@@ -255,6 +272,7 @@ function accentFor(brand){return brand==='Love&Lab'?'love':'biseka';}
 function setAccent(brand){
   const r=document.documentElement.style;
   if(brand==='Love&Lab'){r.setProperty('--accent','var(--love)');r.setProperty('--accent-soft','var(--love-soft)');r.setProperty('--accent-tint','var(--love-tint)');}
+  else if(brand==='Tracking's'){r.setProperty('--accent','var(--extract)');r.setProperty('--accent-soft','var(--extract-soft)');r.setProperty('--accent-tint','var(--extract-tint)');}
   else{r.setProperty('--accent','var(--biseka)');r.setProperty('--accent-soft','var(--biseka-soft)');r.setProperty('--accent-tint','var(--biseka-tint)');}
 }
 function cur(){return DATA.brands[STATE.brand].channels[STATE.channel];}
@@ -309,6 +327,38 @@ function palette(n){
   const base=['var(--accent)','#B0863A','#5C7FB0','#9E6BB0','#54A0A0','#C0705A','#7B9E54','#B05470'];
   return Array.from({length:n},(_,i)=>base[i%base.length]);
 }
+const zerosLike=arr=>new Array(arr.length).fill(0);
+function donutChart(parts,{size=176,thickness=24}={}){
+  const total=parts.reduce((a,p)=>a+p.value,0);
+  if(!total)return `<div class="empty">No data in ${monthLabel()}.</div>`;
+  const r=(size-thickness)/2, c=size/2, circ=2*Math.PI*r;
+  let offset=0,segs='';
+  parts.forEach(p=>{
+    const len=p.value/total*circ;
+    segs+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${thickness}" stroke-dasharray="${len.toFixed(2)} ${(circ-len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${c} ${c})"><title>${esc(p.label)} · ${fmt(p.value)} (${(p.value/total*100).toFixed(1)}%)</title></circle>`;
+    offset+=len;
+  });
+  return `<svg class="chart donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${segs}
+    <text x="${c}" y="${c-4}" text-anchor="middle" style="font-family:Fraunces,serif;font-size:22px;font-weight:600;fill:var(--ink)">${fmt(total)}</text>
+    <text x="${c}" y="${c+15}" text-anchor="middle" style="font-size:11px;fill:var(--muted)">shipments</text></svg>`;
+}
+function dualBarList(rows,colorA,colorB){
+  if(!rows.length)return el('div','empty',`No data in ${monthLabel()}.`);
+  const mx=Math.max(1,...rows.flatMap(r=>[r.a,r.b]));
+  const wrap=el('div','dual-bars');
+  rows.forEach(r=>{
+    const row=el('div','dual-bar-row');
+    row.innerHTML=`<div class="dual-lab" title="${esc(r.label)}">${esc(r.label)}</div>
+      <div class="dual-tracks">
+        <div class="dual-track"><div class="dual-fill" style="width:0;background:${colorA}"></div><span class="dual-val">${fmt(r.a)}</span></div>
+        <div class="dual-track"><div class="dual-fill" style="width:0;background:${colorB}"></div><span class="dual-val">${fmt(r.b)}</span></div>
+      </div>`;
+    wrap.append(row);
+    requestAnimationFrame(()=>{const f=row.querySelectorAll('.dual-fill');f[0].style.width=(r.a/mx*100)+'%';f[1].style.width=(r.b/mx*100)+'%';});
+  });
+  return wrap;
+}
+function brandLegendHtml(brands){return `<div class="legend">${brands.map(b=>`<span><b style="background:${b.color}"></b>${esc(b.name)}</span>`).join('')}</div>`;}
 function barList(rows,{lo=false,max=null}={}){
   if(!rows.length) return `<div class="empty">No sales in ${monthLabel()}.</div>`;
   const mx=max??Math.max(1,...rows.map(r=>r.value));
@@ -327,16 +377,17 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 
 /* ---------- sections ---------- */
 const SECTIONS=[
-  {id:'overview', name:'Overview', build:secOverview},
+  {id:'overview', name:'Overview', build:secOverview, when:d=>!d.isExactExtract},
   {id:'split',    name:'Online vs Shop', build:secChannelSplit, when:d=>d.channelSplit},
-  {id:'products', name:'Products', build:secProducts},
-  {id:'ranking', name:'Top & Bottom', build:secRanking},
+  {id:'products', name:'Products', build:secProducts, when:d=>!d.isExactExtract},
+  {id:'ranking', name:'Top & Bottom', build:secRanking, when:d=>!d.isExactExtract},
   {id:'people',  name:'Care Agents', build:secPeople, when:d=>d.userMonthly},
   {id:'shops',   name:'Shops', build:secShops, when:d=>d.shopMonthly},
   {id:'geo',     name:'Cities & Districts', build:secGeo, when:d=>d.cityMonthly},
   {id:'payments',name:'Payments & Status', build:secPay, when:d=>d.paymentMonthly},
   {id:'bis-tracking',name:'BIS Tracking', build:()=>secTrackDetail('bis'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
   {id:'lovelab-tracking',name:'Lovelab Tracking', build:()=>secTrackDetail('lovelab'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
+  {id:'exact-extract',name:'Tracking's', build:secExactExtract, when:d=>d.isExactExtract},
 ];
 
 function secOverview(d){
@@ -829,6 +880,88 @@ function secTrackDetail(key){
   return sec;
 }
 
+function secExactExtract(){
+  const raw=DATA.trackingRaw||{};
+  const brands=[];
+  if(raw.bis)brands.push({key:'bis',name:'Biseka',color:'var(--biseka)',data:raw.bis});
+  if(raw.lovelab)brands.push({key:'lovelab',name:'Love&Lab',color:'var(--love)',data:raw.lovelab});
+  const sec=el('section','section');sec.id='sec-exact-extract';
+  sec.append(sectionTitle('','Biseka, Love&Lab — Tracking's',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
+
+  const heroWrap=el('div');heroWrap.style.marginBottom='16px';
+  heroWrap.innerHTML=`<div class="ee-hero"><span class="ee-badge">Tracking's</span><span style="color:var(--ink-soft);font-size:13px">Every number on this tab comes straight from ${brands.map(b=>b.name).join(' and ')} tracking sheets — no order data involved.</span></div>`;
+  sec.append(heroWrap);
+
+  const totalShip=brands.reduce((s,b)=>s+pick(b.data.totalMonthly),0);
+  const totalQty=brands.reduce((s,b)=>s+pick(b.data.quantityMonthly),0);
+  const totalReturned=brands.reduce((s,b)=>s+pick(b.data.returnedTotalMonthly),0);
+  const retRate=totalShip?(totalReturned/totalShip*100):0;
+  const k=el('div','grid cols-4');
+  k.append(
+    kpi('Combined shipments',fmt(totalShip),monthLabel(),true),
+    kpi('Combined quantity',fmt(totalQty),`units · ${monthLabel()}`),
+    kpi('Brands in this extract',fmt(brands.length),brands.map(b=>b.name).join(' + ')||'—'),
+    kpi('Combined return rate',retRate.toFixed(1)+'%',`${fmt(totalReturned)} returned · ${monthLabel()}`),
+  );
+  sec.append(k);
+
+  const legendHtml=brandLegendHtml(brands);
+  const g1=el('div','grid cols-2');g1.style.marginTop='16px';
+  const cDonut=card('Shipment share by brand','Portion of combined shipments each brand contributes · '+monthLabel());
+  const donutPanel=el('div','donut-panel',donutChart(brands.map(b=>({label:b.name,value:pick(b.data.totalMonthly),color:b.color}))));
+  cDonut.append(donutPanel);cDonut.insertAdjacentHTML('beforeend',legendHtml);
+  const cTrend=card('Shipments by month','Monthly shipment volume, by brand · '+monthLabel().replace('all months','the period'));
+  if(brands.length>1){
+    cTrend.append(rangeToNode(groupedBars(brands.map(b=>({name:b.name,values:b.data.totalMonthly})),MONTHS)));
+    cTrend.insertAdjacentHTML('beforeend',legendHtml);
+  }else if(brands.length===1){
+    cTrend.append(rangeToNode(lineChart(brands[0].data.totalMonthly,MONTHS)));
+  }else{
+    cTrend.append(el('div','empty','No tracking data found.'));
+  }
+  g1.append(cDonut,cTrend);sec.append(g1);
+
+  if(brands.length>1){
+    const [A,B]=brands;
+    const statusSet=new Set([...Object.keys(A.data.statusMonthly),...Object.keys(B.data.statusMonthly)]);
+    const statusRows=[...statusSet].map(s=>({label:s,a:pick(A.data.statusMonthly[s]||zerosLike(A.data.totalMonthly)),b:pick(B.data.statusMonthly[s]||zerosLike(B.data.totalMonthly))}))
+      .filter(r=>r.a>0||r.b>0).sort((x,y)=>(y.a+y.b)-(x.a+x.b));
+    const cStatus=card('Status breakdown, brand vs. brand',`${A.name} vs ${B.name} · shipment counts · `+monthLabel());
+    cStatus.append(dualBarList(statusRows,A.color,B.color));cStatus.insertAdjacentHTML('beforeend',legendHtml);
+    const gStatus=el('div','grid');gStatus.style.marginTop='16px';gStatus.append(cStatus);sec.append(gStatus);
+
+    const aTot=pick(A.data.totalMonthly),bTot=pick(B.data.totalMonthly);
+    const aRet=pick(A.data.returnedTotalMonthly),bRet=pick(B.data.returnedTotalMonthly);
+    const aQty=pick(A.data.quantityMonthly),bQty=pick(B.data.quantityMonthly);
+    const g2=el('div','grid cols-2');g2.style.marginTop='16px';
+    const cRate=card('Return rate','Returned shipments as a % of total shipments · '+monthLabel());
+    cRate.append(dualBarList([{label:'Return rate %',a:aTot?+(aRet/aTot*100).toFixed(1):0,b:bTot?+(bRet/bTot*100).toFixed(1):0}],A.color,B.color));
+    cRate.insertAdjacentHTML('beforeend',legendHtml);
+    const cAvg=card('Avg quantity per shipment','Basket size, by brand · '+monthLabel());
+    cAvg.append(dualBarList([{label:'Units / shipment',a:aTot?+(aQty/aTot).toFixed(2):0,b:bTot?+(bQty/bTot).toFixed(2):0}],A.color,B.color));
+    cAvg.insertAdjacentHTML('beforeend',legendHtml);
+    g2.append(cRate,cAvg);sec.append(g2);
+
+    const citySet=new Set([...Object.keys(A.data.cityQtyMonthly),...Object.keys(B.data.cityQtyMonthly)]);
+    const cityRows=[...citySet].map(c=>({label:c,a:pick(A.data.cityQtyMonthly[c]||zerosLike(A.data.quantityMonthly)),b:pick(B.data.cityQtyMonthly[c]||zerosLike(B.data.quantityMonthly))}))
+      .filter(r=>r.a>0||r.b>0).sort((x,y)=>(y.a+y.b)-(x.a+x.b)).slice(0,12);
+    const cCities=card('Top cities, brand vs. brand','By quantity shipped · '+monthLabel());
+    cCities.append(dualBarList(cityRows,A.color,B.color));cCities.insertAdjacentHTML('beforeend',legendHtml);
+    const gCities=el('div','grid');gCities.style.marginTop='16px';gCities.append(cCities);sec.append(gCities);
+
+    const riderSet=new Set([...Object.keys(A.data.riderQtyMonthly),...Object.keys(B.data.riderQtyMonthly)]);
+    const riderRows=[...riderSet].map(r=>({label:r,a:pick(A.data.riderQtyMonthly[r]||zerosLike(A.data.quantityMonthly)),b:pick(B.data.riderQtyMonthly[r]||zerosLike(B.data.quantityMonthly))}))
+      .filter(r=>r.a>0||r.b>0).sort((x,y)=>(y.a+y.b)-(x.a+x.b)).slice(0,12);
+    const cRiders=card('Delivery companies, brand vs. brand','By quantity handled · '+monthLabel());
+    cRiders.append(dualBarList(riderRows,A.color,B.color));cRiders.insertAdjacentHTML('beforeend',legendHtml);
+    const gRiders=el('div','grid');gRiders.style.marginTop='16px';gRiders.append(cRiders);sec.append(gRiders);
+  }else if(brands.length===1){
+    sec.append(el('div','note',`Only ${brands[0].name}'s tracking sheet was found in this file — add the other brand's tracking tab to unlock brand-vs-brand comparisons here.`));
+  }
+
+  return sec;
+}
+
 /* ---------- small factories ---------- */
 function kpi(label,val,sub,hero){const e=el('div','kpi'+(hero?' hero':''));e.innerHTML=`<div class="k-label">${label}</div><div class="k-val tnum">${val}</div><div class="k-sub">${sub}</div>`;return e;}
 function card(title,hint){const c=el('div','card');if(title!==''||hint!==''){c.innerHTML=`<h3>${title}</h3>${hint?`<div class="hint">${hint}</div>`:''}`;}return c;}
@@ -842,8 +975,10 @@ function rowFromVals(name,vals,tot){const maxCell=Math.max(1,...vals);const tr=e
 function buildControls(){
   const bs=$('#brandSeg');bs.innerHTML='';
   Object.keys(DATA.brands).forEach(b=>{const btn=el('button',b===STATE.brand?'on':'',b);btn.onclick=()=>{STATE.brand=b;STATE.channel=Object.keys(DATA.brands[b].channels)[0];render();};bs.append(btn);});
-  // exact extract disabled chip
-  const ee=el('button','',"Exact Extract");ee.disabled=true;ee.title="No order data in the source file";bs.append(ee);
+  if(!DATA.brands['Tracking's']){
+    // no tracking data available to build a combined view — keep it visible but disabled
+    const ee=el('button','',"Tracking's");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
+  }
 
   const cs=$('#chanSeg');cs.innerHTML='';
   Object.keys(DATA.brands[STATE.brand].channels).forEach(ch=>{const btn=el('button',ch===STATE.channel?'on':'',ch);btn.onclick=()=>{STATE.channel=ch;render();};cs.append(btn);});
@@ -1066,6 +1201,9 @@ function buildDATA(wb){
     brands['Biseka']={channels:ch};
   }
   if(LL){if(LLT)LL.tracking=LLT;brands['Love&Lab']={channels:{Online:LL}};}
+  if(BIS||LLT){
+    brands['Tracking's']={channels:{Tracking:{months:labels,isExactExtract:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{}}}};
+  }
   if(!Object.keys(brands).length)throw new Error("no recognizable order tabs (need biseka_online, biseka_shop, or lovelab).");
   const range=L?labels[0]+' – '+labels[L-1]:'—';
   const chipOrders=(BO?BO.totalOrders:0)+(BS?BS.totalOrders:0)+(LL?LL.totalOrders:0);
