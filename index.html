@@ -203,7 +203,7 @@ footer{max-width:1180px;margin:60px auto 0;padding:22px 24px;border-top:1px soli
     <p>Drag your <b>Data.xlsx</b> here, or choose it below. The dashboard rebuilds instantly with your latest orders — each day, just drop in the updated file.</p>
     <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
     <button class="pick" id="pickBtn">Choose Excel file</button>
-    <div class="tabs-need">Expected tabs: <code>products</code> · <code>assigned</code> · <code>biseka_online</code> · <code>biseka_shop</code> · <code>lovelab</code></div>
+    <div class="tabs-need">Expected tabs: <code>products</code> · <code>assigned</code> · <code>biseka_online</code> · <code>biseka_shop</code> · <code>lovelab</code> — plus optional <code>BIS-Tracking</code> · <code>Lovelab-Tracking</code> for delivery/courier analytics</div>
   </div>
   <div class="loaderr" id="loaderr"></div>
   <div class="privacy">🔒 <b>Private:</b> your file is read entirely in your browser — nothing is uploaded or sent anywhere.</div>
@@ -335,6 +335,8 @@ const SECTIONS=[
   {id:'shops',   name:'Shops', build:secShops, when:d=>d.shopMonthly},
   {id:'geo',     name:'Cities & Districts', build:secGeo, when:d=>d.cityMonthly},
   {id:'payments',name:'Payments & Status', build:secPay, when:d=>d.paymentMonthly},
+  {id:'bis-tracking',name:'BIS Tracking', build:()=>secTrackDetail('bis'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
+  {id:'lovelab-tracking',name:'Lovelab Tracking', build:()=>secTrackDetail('lovelab'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
 ];
 
 function secOverview(d){
@@ -586,6 +588,247 @@ function secPay(d){
   return sec;
 }
 
+function secTracking(d){
+  const t=d.tracking;
+  const sec=el('section','section');sec.id='sec-tracking';
+  sec.append(sectionTitle('','Delivery Tracking',`Courier shipments for ${STATE.brand} — status, cities, districts & delivery companies · ${monthLabel()}`));
+
+  /* KPI strip */
+  const totalShip=pick(t.totalMonthly);
+  const citiesN=Object.keys(t.cityMonthly).filter(c=>pick(t.cityMonthly[c])>0).length;
+  const distN=Object.keys(t.districtMonthly).filter(c=>pick(t.districtMonthly[c])>0).length;
+  const ridersN=Object.keys(t.riderMonthly).filter(c=>pick(t.riderMonthly[c])>0).length;
+  const k=el('div','grid cols-4');
+  k.append(
+    kpi('Shipments',fmt(totalShip),monthLabel(),true),
+    kpi('Cities reached',fmt(citiesN),monthLabel()),
+    kpi('Districts reached',fmt(distN),monthLabel()),
+    kpi('Delivery companies',fmt(ridersN),monthLabel()),
+  );
+  sec.append(k);
+
+  /* status breakdown */
+  const g0=el('div','grid');g0.style.marginTop='16px';
+  const cStatus=card('Shipments by status','Order counts by fulfilment status · '+monthLabel());
+  const stRows=Object.entries(t.statusMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value).map((r,i)=>({...r,rank:i+1}));
+  cStatus.append(barList(stRows));
+  g0.append(cStatus);sec.append(g0);
+
+  /* status -> city / district drilldown, monthly table */
+  const statuses=Object.keys(t.statusMonthly).sort((a,b)=>pick(t.statusMonthly[b])-pick(t.statusMonthly[a]));
+  const gSel=el('div','grid cols-2');gSel.style.marginTop='16px';
+
+  function drillTable(container,title,hint,byStatusMap,keys,rowLabel){
+    const head=el('div','card-head');
+    head.innerHTML=`<div><h3>${title}</h3><div class="hint">${hint}</div></div>`;
+    const sel=el('select','search');keys.forEach(s=>{const o=el('option','',esc(s));o.value=s;sel.append(o);});
+    head.append(sel);container.append(head);
+    const holder=el('div','tbl-scroll');container.append(holder);
+    function draw(){
+      const key=sel.value;
+      const map=byStatusMap[key]||{};
+      const rows=Object.entries(map).map(([n,v])=>({n,v,tot:v.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.tot-a.tot);
+      const tb=el('table');
+      tb.innerHTML=`<thead><tr><th>${rowLabel}</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead>`;
+      const body=el('tbody');
+      rows.forEach(r=>body.append(rowFromVals(r.n,r.v,r.tot)));
+      tb.append(body);holder.innerHTML='';holder.append(tb);
+      if(!rows.length)holder.append(el('div','empty','No data for “'+esc(key)+'”.'));
+    }
+    sel.addEventListener('change',draw);draw();
+  }
+
+  const cCity=card('','');
+  drillTable(cCity,'Status → City','City order counts for the selected status, by month.',t.statusCityMonthly,statuses,'City');
+  const cDist=card('','');
+  drillTable(cDist,'Status → District','District order counts for the selected status, by month.',t.statusDistrictMonthly,statuses,'District');
+  gSel.append(cCity,cDist);sec.append(gSel);
+
+  /* overall top cities / districts (all statuses combined, respects month filter) */
+  const g1=el('div','grid cols-2');g1.style.marginTop='16px';
+  const cityRows=Object.entries(t.cityMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
+  const distRows=Object.entries(t.districtMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
+  const c1=card('Top cities overall','All statuses combined · '+monthLabel()+` · ${cityRows.length} cities`);
+  c1.append(barList(cityRows.slice(0,12).map((r,i)=>({...r,rank:i+1}))));
+  const c2=card('Top districts overall','All statuses combined · '+monthLabel()+` · ${distRows.length} districts`);
+  c2.append(barList(distRows.slice(0,12).map((r,i)=>({...r,rank:i+1}))));
+  g1.append(c1,c2);sec.append(g1);
+
+  /* delivery companies / riders */
+  const riderRows=Object.entries(t.riderMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
+  const g2=el('div','grid');g2.style.marginTop='16px';
+  const cRider=card('Delivery companies / riders','Shipments handled · '+monthLabel());
+  cRider.append(barList(riderRows.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
+  g2.append(cRider);sec.append(g2);
+
+  /* rider -> city and rider -> district drilldown */
+  const riders2=Object.keys(t.riderMonthly).sort((a,b)=>pick(t.riderMonthly[b])-pick(t.riderMonthly[a]));
+  const gRC=el('div','grid cols-2');gRC.style.marginTop='16px';
+  const cRC=card('','');
+  drillTable(cRC,'Delivery company → City','Which cities this delivery company serves most, by month.',t.riderCityMonthly,riders2,'City');
+  const cRD=card('','');
+  drillTable(cRD,'Delivery company → District','Which districts this delivery company serves most, by month.',t.riderDistrictMonthly,riders2,'District');
+  gRC.append(cRC,cRD);sec.append(gRC);
+
+  return sec;
+}
+
+/* ---------- BIS / Lovelab tracking tabs (separated, brand/channel-independent) ---------- */
+function drillTableMetric(container,title,hint,countMap,qtyMap,keys,rowLabel,defaultKey){
+  const head=el('div','card-head');
+  head.innerHTML=`<div><h3>${title}</h3><div class="hint">${hint}</div></div>`;
+  const wrap=el('div');wrap.style.display='flex';wrap.style.gap='8px';wrap.style.alignItems='center';wrap.style.flexWrap='wrap';
+  const sel=el('select','search');keys.forEach(s=>{const o=el('option','',esc(s));o.value=s;sel.append(o);});
+  if(defaultKey&&keys.includes(defaultKey))sel.value=defaultKey;
+  const seg=el('div','seg');
+  const bOrders=el('button','on','Orders');const bQty=el('button','','Quantity');
+  seg.append(bOrders,bQty);
+  wrap.append(sel,seg);head.append(wrap);container.append(head);
+  const holder=el('div','tbl-scroll');container.append(holder);
+  let metric='orders';
+  function draw(){
+    const key=sel.value;
+    const map=(metric==='orders'?countMap:qtyMap)[key]||{};
+    const rows=Object.entries(map).map(([n,v])=>({n,v,tot:v.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.tot-a.tot);
+    const tb=el('table');
+    tb.innerHTML=`<thead><tr><th>${rowLabel}</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead>`;
+    const body=el('tbody');
+    rows.forEach(r=>body.append(rowFromVals(r.n,r.v,r.tot)));
+    tb.append(body);holder.innerHTML='';holder.append(tb);
+    if(!rows.length)holder.append(el('div','empty','No data for “'+esc(key)+'”.'));
+  }
+  sel.addEventListener('change',draw);
+  bOrders.onclick=()=>{metric='orders';bOrders.className='on';bQty.className='';draw();};
+  bQty.onclick=()=>{metric='qty';bQty.className='on';bOrders.className='';draw();};
+  draw();
+}
+function riderCityDistrictTable(container,list){
+  const head=el('div','card-head');
+  head.innerHTML=`<div><h3>Delivery company × City × District</h3><div class="hint">Every route this delivery company has served, with order count and quantity · ${monthLabel()}. Type to filter.</div></div>`;
+  const search=el('input','search');search.type='search';search.placeholder='Search company, city or district…';
+  head.append(search);container.append(head);
+  const holder=el('div','tbl-scroll');container.append(holder);
+  const rows=list.map(r=>({rider:r.rider,city:r.city,dist:r.dist,count:pick(r.count),qty:pick(r.qty)})).filter(r=>r.count>0);
+  function render(q=''){
+    const ql=q.toLowerCase();
+    const f=rows.filter(r=>!ql||r.rider.toLowerCase().includes(ql)||r.city.toLowerCase().includes(ql)||r.dist.toLowerCase().includes(ql))
+      .sort((a,b)=>b.qty-a.qty);
+    const t=el('table');
+    t.innerHTML=`<thead><tr><th>Delivery Company</th><th>City</th><th>District</th><th>Orders</th><th>Quantity</th></tr></thead>`;
+    const body=el('tbody');
+    f.forEach(r=>{const tr=el('tr');
+      tr.innerHTML=`<td title="${esc(r.rider)}">${esc(r.rider)}</td><td>${esc(r.city)}</td><td>${esc(r.dist)}</td><td class="tot">${fmt(r.count)}</td><td class="tot">${fmt(r.qty)}</td>`;
+      body.append(tr);});
+    t.append(body);holder.innerHTML='';holder.append(t);
+    if(!f.length)holder.append(el('div','empty','No matching rows.'));
+  }
+  search.addEventListener('input',()=>render(search.value));
+  render();
+}
+function secTrackDetail(key){
+  const t=DATA.trackingRaw[key];
+  const label=key==='bis'?'BIS Tracking':'Lovelab Tracking';
+  const sec=el('section','section');sec.id='sec-'+(key==='bis'?'bis-tracking':'lovelab-tracking');
+  sec.append(sectionTitle('',label,`Courier shipments for ${label} — status, cities, districts & delivery companies · ${monthLabel()}`));
+
+  /* KPI strip */
+  const totalShip=pick(t.totalMonthly), totalQty=pick(t.quantityMonthly);
+  const citiesN=Object.keys(t.cityMonthly).filter(c=>pick(t.cityMonthly[c])>0).length;
+  const distN=Object.keys(t.districtMonthly).filter(c=>pick(t.districtMonthly[c])>0).length;
+  const ridersN=Object.keys(t.riderMonthly).filter(c=>pick(t.riderMonthly[c])>0).length;
+  const k=el('div','grid cols-4');
+  k.append(
+    kpi('Shipments',fmt(totalShip),monthLabel(),true),
+    kpi('Quantity shipped',fmt(totalQty),`units · ${monthLabel()}`),
+    kpi('Cities reached',fmt(citiesN),monthLabel()),
+    kpi('Districts reached',fmt(distN),monthLabel()),
+  );
+  sec.append(k);
+
+  const returnedShip=pick(t.returnedTotalMonthly), returnedQty=pick(t.returnedQtyMonthly);
+  const retRate=totalShip?(returnedShip/totalShip*100):0;
+  const k2=el('div','grid cols-4');k2.style.marginTop='16px';
+  k2.append(
+    kpi('Delivery companies',fmt(ridersN),monthLabel()),
+    kpi('Returned shipments',fmt(returnedShip),`${retRate.toFixed(1)}% of shipments`),
+    kpi('Returned quantity',fmt(returnedQty),`units · ${monthLabel()}`),
+    kpi('Avg qty / shipment',totalShip?(totalQty/totalShip).toFixed(2):'0','units'),
+  );
+  sec.append(k2);
+
+  /* status breakdown — orders & quantity side by side */
+  const g0=el('div','grid cols-2');g0.style.marginTop='16px';
+  const stRowsO=Object.entries(t.statusMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value).map((r,i)=>({...r,rank:i+1}));
+  const stRowsQ=Object.entries(t.statusQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value).map((r,i)=>({...r,rank:i+1}));
+  const cStatusO=card('Shipments by status','Order counts by fulfilment status · '+monthLabel());
+  cStatusO.append(barList(stRowsO));
+  const cStatusQ=card('Quantity by status','Units by fulfilment status · '+monthLabel());
+  cStatusQ.append(barList(stRowsQ));
+  g0.append(cStatusO,cStatusQ);sec.append(g0);
+
+  /* most returned cities / districts, by quantity */
+  if(t.hasReturns){
+    const g1=el('div','grid cols-2');g1.style.marginTop='16px';
+    const retCityRows=Object.entries(t.returnedCityQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value).map((r,i)=>({...r,rank:i+1}));
+    const retDistRows=Object.entries(t.returnedDistrictQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value).map((r,i)=>({...r,rank:i+1}));
+    const c1=card('Most returned cities','Ranked by returned quantity (units) · '+monthLabel());
+    c1.append(barList(retCityRows.slice(0,15)));
+    const c2=card('Most returned districts','Ranked by returned quantity (units) · '+monthLabel());
+    c2.append(barList(retDistRows.slice(0,15)));
+    g1.append(c1,c2);sec.append(g1);
+    if(Object.keys(t.returnedStatusMonthly).length>1){
+      const retStRows=Object.entries(t.returnedStatusQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value).map((r,i)=>({...r,rank:i+1}));
+      const g1b=el('div','grid');g1b.style.marginTop='16px';
+      const c3=card('Return-type breakdown','Quantity by specific return status · '+monthLabel());
+      c3.append(barList(retStRows));g1b.append(c3);sec.append(g1b);
+    }
+  }
+
+  /* status -> city / district drilldown, with Orders/Quantity toggle */
+  const statuses=Object.keys(t.statusQtyMonthly).sort((a,b)=>pick(t.statusQtyMonthly[b])-pick(t.statusQtyMonthly[a]));
+  const returnKey=statuses.find(s=>/return/i.test(s));
+  const gSel=el('div','grid cols-2');gSel.style.marginTop='16px';
+  const cCity=card('','');
+  drillTableMetric(cCity,'Status → City','Which cities each status hits hardest — switch between order count and quantity.',t.statusCityMonthly,t.statusCityQtyMonthly,statuses,'City',returnKey);
+  const cDist=card('','');
+  drillTableMetric(cDist,'Status → District','Which districts each status hits hardest — switch between order count and quantity.',t.statusDistrictMonthly,t.statusDistrictQtyMonthly,statuses,'District',returnKey);
+  gSel.append(cCity,cDist);sec.append(gSel);
+
+  /* overall top cities / districts (all statuses combined) — orders and quantity */
+  const g2=el('div','grid cols-2');g2.style.marginTop='16px';
+  const cityRowsQ=Object.entries(t.cityQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
+  const distRowsQ=Object.entries(t.districtQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
+  const c4=card('Top cities overall','By quantity · all statuses combined · '+monthLabel()+` · ${cityRowsQ.length} cities`);
+  c4.append(barList(cityRowsQ.slice(0,12).map((r,i)=>({...r,rank:i+1}))));
+  const c5=card('Top districts overall','By quantity · all statuses combined · '+monthLabel()+` · ${distRowsQ.length} districts`);
+  c5.append(barList(distRowsQ.slice(0,12).map((r,i)=>({...r,rank:i+1}))));
+  g2.append(c4,c5);sec.append(g2);
+
+  /* delivery companies / riders — orders and quantity */
+  const riderRowsQ=Object.entries(t.riderQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
+  const g3=el('div','grid');g3.style.marginTop='16px';
+  const cRider=card('Delivery companies','Quantity shipped · '+monthLabel());
+  cRider.append(barList(riderRowsQ.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
+  g3.append(cRider);sec.append(g3);
+
+  /* rider -> city and rider -> district drilldown, with Orders/Quantity toggle */
+  const riders2=Object.keys(t.riderQtyMonthly).sort((a,b)=>pick(t.riderQtyMonthly[b])-pick(t.riderQtyMonthly[a]));
+  const gRC=el('div','grid cols-2');gRC.style.marginTop='16px';
+  const cRC=card('','');
+  drillTableMetric(cRC,'Delivery company → City','Which cities this delivery company serves most.',t.riderCityMonthly,t.riderCityQtyMonthly,riders2,'City');
+  const cRD=card('','');
+  drillTableMetric(cRD,'Delivery company → District','Which districts this delivery company serves most.',t.riderDistrictMonthly,t.riderDistrictQtyMonthly,riders2,'District');
+  gRC.append(cRC,cRD);sec.append(gRC);
+
+  /* full delivery-company × city × district detail table */
+  const g4=el('div','grid');g4.style.marginTop='16px';
+  const cFull=card('','');
+  riderCityDistrictTable(cFull,t.riderCityDistrictList);
+  g4.append(cFull);sec.append(g4);
+
+  return sec;
+}
+
 /* ---------- small factories ---------- */
 function kpi(label,val,sub,hero){const e=el('div','kpi'+(hero?' hero':''));e.innerHTML=`<div class="k-label">${label}</div><div class="k-val tnum">${val}</div><div class="k-sub">${sub}</div>`;return e;}
 function card(title,hint){const c=el('div','card');if(title!==''||hint!==''){c.innerHTML=`<h3>${title}</h3>${hint?`<div class="hint">${hint}</div>`:''}`;}return c;}
@@ -666,8 +909,11 @@ function buildDATA(wb){
   const assignOf=item=>name2assign[String(item).trim()]||String(item);
 
   const TABS={online:sheet(wb,'biseka_online'),shop:sheet(wb,'biseka_shop'),love:sheet(wb,'lovelab')};
+  const TRACK={bis:sheet(wb,'BIS-Tracking'),lovelab:sheet(wb,'Lovelab-Tracking')};
   const mset=new Set();
   for(const k of ['online','shop','love']){const rows=TABS[k];if(!rows)continue;const H=headerMap(rows),di=H.indexOf('Date');
+    if(di<0)continue;for(let r=1;r<rows.length;r++){const mk=ymKey((rows[r]||[])[di]);if(mk)mset.add(mk);}}
+  for(const k of ['bis','lovelab']){const rows=TRACK[k];if(!rows)continue;const H=headerMap(rows),di=H.indexOf('Date');
     if(di<0)continue;for(let r=1;r<rows.length;r++){const mk=ymKey((rows[r]||[])[di]);if(mk)mset.add(mk);}}
   const monthKeys=[...mset].sort(), L=monthKeys.length, mIdx={};monthKeys.forEach((k,i)=>mIdx[k]=i);
   const multiYear=new Set(monthKeys.map(k=>k.slice(0,4))).size>1;
@@ -705,6 +951,91 @@ function buildDATA(wb){
     if(shopI>=0){out.shopMonthly=shopMonthly;out.shopProductTotals=shopProdTot;}
     return out;
   }
+  function buildTrackingSheet(rows){
+    const H=headerMap(rows), di=H.indexOf('Date');
+    const riderI=H.indexOf('Rider')>=0?H.indexOf('Rider'):H.indexOf('delivery company');
+    const statI=H.indexOf('Status'), cityI=H.indexOf('City'), distI=H.indexOf('District'), qtyI=H.indexOf('Quantity');
+    const statusMonthly={},statusCityMonthly={},statusDistrictMonthly={};
+    const statusQtyMonthly={},statusCityQtyMonthly={},statusDistrictQtyMonthly={};
+    const cityMonthly={},districtMonthly={},cityQtyMonthly={},districtQtyMonthly={};
+    const riderMonthly={},riderCityMonthly={},riderDistrictMonthly={},riderStatusTotals={};
+    const riderQtyMonthly={},riderCityQtyMonthly={},riderDistrictQtyMonthly={},riderStatusQtyTotals={};
+    const riderCityDistrict={};
+    const returnedTotalMonthly=zeros(),returnedQtyMonthly=zeros();
+    const returnedCityMonthly={},returnedCityQtyMonthly={},returnedDistrictMonthly={},returnedDistrictQtyMonthly={};
+    const returnedStatusMonthly={},returnedStatusQtyMonthly={};
+    const totalMonthly=zeros(),quantityMonthly=zeros();let totalOrders=0,totalQuantity=0;
+    const statusCanon={}; // merges case-only duplicates (e.g. "Delivered" / "DELIVERED") under one label
+    function normStatus(raw){
+      const k=raw.toLowerCase();
+      if(!statusCanon[k])statusCanon[k]=titleCase(raw);
+      return statusCanon[k];
+    }
+    for(let r=1;r<rows.length;r++){const row=rows[r];if(!row)continue;
+      if(!row.some(c=>c!=null&&String(c).trim()!==''))continue;
+      const mk=ymKey(row[di]), mi=mk!=null?mIdx[mk]:undefined;
+      totalOrders++;if(mi!==undefined)totalMonthly[mi]++;
+      const q=qtyI>=0?num(row[qtyI]):1;totalQuantity+=q;if(mi!==undefined)quantityMonthly[mi]+=q;
+      const stRaw=(statI>=0&&row[statI]!=null&&String(row[statI]).trim()!=='')?String(row[statI]).trim():'Unknown';
+      const st=normStatus(stRaw);
+      const isReturned=/return/i.test(stRaw);
+      const city=cityI>=0?cleanGeo(row[cityI]):'Unknown';
+      const dist=distI>=0?cleanGeo(row[distI]):'Unknown';
+      const rider=(riderI>=0&&row[riderI]!=null&&String(row[riderI]).trim()!=='')?String(row[riderI]).trim():'Unknown';
+
+      (statusMonthly[st]=statusMonthly[st]||zeros());if(mi!==undefined)statusMonthly[st][mi]++;
+      (statusQtyMonthly[st]=statusQtyMonthly[st]||zeros());if(mi!==undefined)statusQtyMonthly[st][mi]+=q;
+      (cityMonthly[city]=cityMonthly[city]||zeros());if(mi!==undefined)cityMonthly[city][mi]++;
+      (cityQtyMonthly[city]=cityQtyMonthly[city]||zeros());if(mi!==undefined)cityQtyMonthly[city][mi]+=q;
+      (districtMonthly[dist]=districtMonthly[dist]||zeros());if(mi!==undefined)districtMonthly[dist][mi]++;
+      (districtQtyMonthly[dist]=districtQtyMonthly[dist]||zeros());if(mi!==undefined)districtQtyMonthly[dist][mi]+=q;
+
+      (statusCityMonthly[st]=statusCityMonthly[st]||{});
+      (statusCityMonthly[st][city]=statusCityMonthly[st][city]||zeros());if(mi!==undefined)statusCityMonthly[st][city][mi]++;
+      (statusCityQtyMonthly[st]=statusCityQtyMonthly[st]||{});
+      (statusCityQtyMonthly[st][city]=statusCityQtyMonthly[st][city]||zeros());if(mi!==undefined)statusCityQtyMonthly[st][city][mi]+=q;
+      (statusDistrictMonthly[st]=statusDistrictMonthly[st]||{});
+      (statusDistrictMonthly[st][dist]=statusDistrictMonthly[st][dist]||zeros());if(mi!==undefined)statusDistrictMonthly[st][dist][mi]++;
+      (statusDistrictQtyMonthly[st]=statusDistrictQtyMonthly[st]||{});
+      (statusDistrictQtyMonthly[st][dist]=statusDistrictQtyMonthly[st][dist]||zeros());if(mi!==undefined)statusDistrictQtyMonthly[st][dist][mi]+=q;
+
+      (riderMonthly[rider]=riderMonthly[rider]||zeros());if(mi!==undefined)riderMonthly[rider][mi]++;
+      (riderQtyMonthly[rider]=riderQtyMonthly[rider]||zeros());if(mi!==undefined)riderQtyMonthly[rider][mi]+=q;
+      (riderCityMonthly[rider]=riderCityMonthly[rider]||{});
+      (riderCityMonthly[rider][city]=riderCityMonthly[rider][city]||zeros());if(mi!==undefined)riderCityMonthly[rider][city][mi]++;
+      (riderCityQtyMonthly[rider]=riderCityQtyMonthly[rider]||{});
+      (riderCityQtyMonthly[rider][city]=riderCityQtyMonthly[rider][city]||zeros());if(mi!==undefined)riderCityQtyMonthly[rider][city][mi]+=q;
+      (riderDistrictMonthly[rider]=riderDistrictMonthly[rider]||{});
+      (riderDistrictMonthly[rider][dist]=riderDistrictMonthly[rider][dist]||zeros());if(mi!==undefined)riderDistrictMonthly[rider][dist][mi]++;
+      (riderDistrictQtyMonthly[rider]=riderDistrictQtyMonthly[rider]||{});
+      (riderDistrictQtyMonthly[rider][dist]=riderDistrictQtyMonthly[rider][dist]||zeros());if(mi!==undefined)riderDistrictQtyMonthly[rider][dist][mi]+=q;
+      (riderStatusTotals[rider]=riderStatusTotals[rider]||{});riderStatusTotals[rider][st]=(riderStatusTotals[rider][st]||0)+1;
+      (riderStatusQtyTotals[rider]=riderStatusQtyTotals[rider]||{});riderStatusQtyTotals[rider][st]=(riderStatusQtyTotals[rider][st]||0)+q;
+
+      const rcdKey=rider+'|||'+city+'|||'+dist;
+      const rcd=riderCityDistrict[rcdKey]=riderCityDistrict[rcdKey]||{rider,city,dist,count:zeros(),qty:zeros()};
+      if(mi!==undefined){rcd.count[mi]++;rcd.qty[mi]+=q;}
+
+      if(isReturned){
+        if(mi!==undefined){returnedTotalMonthly[mi]++;returnedQtyMonthly[mi]+=q;}
+        (returnedCityMonthly[city]=returnedCityMonthly[city]||zeros());if(mi!==undefined)returnedCityMonthly[city][mi]++;
+        (returnedCityQtyMonthly[city]=returnedCityQtyMonthly[city]||zeros());if(mi!==undefined)returnedCityQtyMonthly[city][mi]+=q;
+        (returnedDistrictMonthly[dist]=returnedDistrictMonthly[dist]||zeros());if(mi!==undefined)returnedDistrictMonthly[dist][mi]++;
+        (returnedDistrictQtyMonthly[dist]=returnedDistrictQtyMonthly[dist]||zeros());if(mi!==undefined)returnedDistrictQtyMonthly[dist][mi]+=q;
+        (returnedStatusMonthly[st]=returnedStatusMonthly[st]||zeros());if(mi!==undefined)returnedStatusMonthly[st][mi]++;
+        (returnedStatusQtyMonthly[st]=returnedStatusQtyMonthly[st]||zeros());if(mi!==undefined)returnedStatusQtyMonthly[st][mi]+=q;
+      }
+    }
+    const riderCityDistrictList=Object.values(riderCityDistrict);
+    const hasReturns=Object.keys(returnedStatusMonthly).length>0;
+    return {months:labels,totalOrders,totalQuantity,totalMonthly,quantityMonthly,
+      statusMonthly,statusQtyMonthly,statusCityMonthly,statusCityQtyMonthly,statusDistrictMonthly,statusDistrictQtyMonthly,
+      cityMonthly,cityQtyMonthly,districtMonthly,districtQtyMonthly,
+      riderMonthly,riderQtyMonthly,riderCityMonthly,riderCityQtyMonthly,riderDistrictMonthly,riderDistrictQtyMonthly,
+      riderStatusTotals,riderStatusQtyTotals,riderCityDistrictList,
+      hasReturns,returnedTotalMonthly,returnedQtyMonthly,returnedCityMonthly,returnedCityQtyMonthly,
+      returnedDistrictMonthly,returnedDistrictQtyMonthly,returnedStatusMonthly,returnedStatusQtyMonthly};
+  }
   const add=(a,b)=>a.map((x,i)=>x+b[i]);
   const mergeMap=(m1,m2)=>{const o={};for(const k in m1)o[k]=m1[k].slice();for(const k in m2)o[k]=o[k]?add(o[k],m2[k]):m2[k].slice();return o;};
   const regroup=pm=>{const o={};for(const k in pm){const a=assignOf(k);o[a]=o[a]?add(o[a],pm[k]):pm[k].slice();}return o;};
@@ -713,6 +1044,8 @@ function buildDATA(wb){
   const BO=TABS.online?buildChannel(TABS.online,{payment:1,status:1,userCol:'Username',geo:1}):null;
   const BS=TABS.shop?buildChannel(TABS.shop,{payment:1,userCol:'UserName',shop:1}):null;
   const LL=TABS.love?buildChannel(TABS.love,{payment:1,status:1,geo:1}):null;
+  const BIS=TRACK.bis?buildTrackingSheet(TRACK.bis):null;
+  const LLT=TRACK.lovelab?buildTrackingSheet(TRACK.lovelab):null;
   const brands={};
   if(BO||BS){
     const ch={};if(BO)ch['Online']=BO;if(BS)ch['Shop']=BS;
@@ -729,14 +1062,16 @@ function buildDATA(wb){
       for(const s in BS.shopProductTotals)ASN.shopProductTotals[s]=regroupFlat(BS.shopProductTotals[s]);
       ch['Online + Shop']=COMB;ch['Assigned']=ASN;
     }
+    if(BIS)for(const k in ch)ch[k].tracking=BIS;
     brands['Biseka']={channels:ch};
   }
-  if(LL)brands['Love&Lab']={channels:{Online:LL}};
+  if(LL){if(LLT)LL.tracking=LLT;brands['Love&Lab']={channels:{Online:LL}};}
   if(!Object.keys(brands).length)throw new Error("no recognizable order tabs (need biseka_online, biseka_shop, or lovelab).");
   const range=L?labels[0]+' – '+labels[L-1]:'—';
   const chipOrders=(BO?BO.totalOrders:0)+(BS?BS.totalOrders:0)+(LL?LL.totalOrders:0);
   return {meta:{months:labels,monthKeys,range,orders:chipOrders,lastUpdated:new Date().toISOString().slice(0,10),
-    note:'Payment methods merged (Koko; Mintpay). Online, Shop and Online + Shop show size-level products; Assigned consolidates sizes into assign names. 12 fragrance SKUs removed from Biseka. All figures computed in your browser from the loaded file.'},brands};
+    note:'Payment methods merged (Koko; Mintpay). Online, Shop and Online + Shop show size-level products; Assigned consolidates sizes into assign names. 12 fragrance SKUs removed from Biseka. All figures computed in your browser from the loaded file.'},brands,
+    trackingRaw:{bis:BIS,lovelab:LLT}};
 }
 
 /* ---------- file handling ---------- */
