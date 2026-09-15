@@ -53,6 +53,7 @@ h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;margin:0;let
 .seg button{font-family:inherit;font-size:13px;font-weight:500;color:var(--ink-soft);background:none;border:none;padding:7px 15px;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
 .seg button:hover{color:var(--ink)}
 .seg button.on{background:var(--accent);color:#fff}
+.brand-btn-logo{height:16px;max-width:52px;object-fit:contain;vertical-align:-3px;margin-right:6px;border-radius:3px;background:#fff;padding:1px 3px}
 .seg.months button{padding:7px 11px;font-size:12.5px}
 .seg button:disabled{opacity:.34;cursor:not-allowed}
 .seg button:disabled:hover{color:var(--ink-soft)}
@@ -170,6 +171,21 @@ svg.chart.donut{overflow:visible}
 .courier-stat .cs-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .courier-stat .cs-val{font-family:"Source Serif 4",serif;font-size:16px;font-weight:600;margin-top:3px}
 .courier-verdict{margin:10px 20px 20px;font-size:12px;color:var(--ink-soft);border-left:2px solid var(--line);padding-left:10px}
+
+/* ---- brand hero banner ---- */
+.brand-hero{display:flex;gap:18px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin-top:14px;box-shadow:var(--shadow)}
+.brand-hero-photo{flex:0 0 76px;height:76px;border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--line-soft)}
+.brand-hero-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.brand-hero-body{flex:1;min-width:0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand-hero-logo{height:22px;max-width:110px;object-fit:contain}
+.brand-hero-body p{margin:0;font-size:13px;line-height:1.5;max-width:640px;flex:1;min-width:220px}
+@media (max-width:600px){.brand-hero{flex-direction:column;align-items:flex-start}.brand-hero-photo{width:100%;height:120px;flex:none}}
+
+/* ---- product thumbnails in the Products table ---- */
+.prod-thumb-cell{width:34px;padding-left:10px!important;padding-right:2px!important}
+.prod-thumb{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;overflow:hidden;background:var(--line-soft);flex:0 0 auto;vertical-align:middle}
+.prod-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.prod-thumb-fallback{font-size:11px;font-weight:700;color:var(--muted);font-family:"Source Serif 4",serif}
 
 @media(max-width:1024px){
   .wrap,.topbar,footer{padding-left:20px;padding-right:20px}
@@ -591,9 +607,37 @@ const SECTIONS=[
   {id:'Trackings',name:'Combined Trackings', group:'Cross-brand', build:secExactExtract, when:d=>d.isExactExtract},
 ];
 
+const BRAND_HERO={
+  'Biseka':{
+    img:'https://biseka.co/wp-content/uploads/2025/08/100m-1024x1024.jpg',
+    logo:'https://biseka.co/wp-content/uploads/2025/08/Biseka-Logo.png',
+    tagline:'BISEKA is more than a brand — it’s a blend of heritage, care, and innovation. We create products that nurture, inspire, and bring out your natural glow.',
+    accent:'var(--biseka)',tint:'var(--biseka-tint)',soft:'var(--biseka-soft)'
+  },
+  'Love&Lab':{
+    img:'https://loveandlab.com/wp-content/uploads/2024/10/Healthy-Glow-Face-Cream-100ml.jpg',
+    logo:'https://loveandlab.com/wp-content/uploads/2024/10/Logo-PNG-scaled-120x40.png',
+    tagline:'Where love meets science. We blend the latest scientific innovations with carefully chosen natural ingredients for visible, lasting results.',
+    accent:'var(--love)',tint:'var(--love-tint)',soft:'var(--love-soft)'
+  }
+};
+function brandHero(){
+  const h=BRAND_HERO[STATE.brand];if(!h)return null;
+  const hero=el('div','brand-hero');
+  hero.style.background=`linear-gradient(135deg,${h.tint},var(--surface))`;
+  hero.style.borderColor=h.soft;
+  hero.innerHTML=`
+    <div class="brand-hero-photo"><img src="${h.img}" alt="${esc(STATE.brand)} product"></div>
+    <div class="brand-hero-body">
+      <img class="brand-hero-logo" src="${h.logo}" alt="${esc(STATE.brand)} logo">
+      <p style="color:${h.accent}">${esc(h.tagline)}</p>
+    </div>`;
+  return hero;
+}
 function secOverview(d){
   const sec=el('section','section');sec.id='sec-overview';
   sec.append(sectionTitle('01','Overview',`Volume and momentum for ${STATE.brand} · ${STATE.channel}`));
+  const hero=brandHero();if(hero)sec.append(hero);
   const units=pick(d.monthlyUnits), orders=pick(d.monthlyOrders);
   const aov=orders? units/orders:0;
   const activeProd=Object.values(d.productMonthly).filter(v=>pick(v)>0).length;
@@ -695,6 +739,39 @@ function secChannelSplit(d){
   return sec;
 }
 
+/* ---- product photo matching (best-effort, real product photos from the brand sites) ---- */
+const BIS_IMG_BASE='https://biseka.co/wp-content/uploads/2025/08/';
+const LL_IMG_BASE='https://loveandlab.com/wp-content/uploads/';
+const BISEKA_PRODUCT_IMAGES=[
+  {test:/hair growth oil/i, url:BIS_IMG_BASE+'100k-1024x1024.jpg'},
+  {test:/hair oil/i, url:BIS_IMG_BASE+'100i-1024x1024.jpg'},
+  {test:/sulfate.*shampoo|moisturis(?:ing|ng) shampoo|moisturiz(?:ing|ng) shampoo/i, url:BIS_IMG_BASE+'100l-1024x1024.jpg'},
+  {test:/shampoo/i, url:BIS_IMG_BASE+'100m-1024x1024.jpg'},
+  {test:/hydrating leave|leave.?in conditioner|leave.?on conditioner/i, url:BIS_IMG_BASE+'100c-1024x1024.jpg'},
+  {test:/hair conditioner/i, url:BIS_IMG_BASE+'100f-1024x1024.jpg'},
+  {test:/curl defining|repair cream/i, url:BIS_IMG_BASE+'100e-1024x1024.jpg'},
+  {test:/bhringraj/i, url:BIS_IMG_BASE+'100g-1024x1024.jpg'},
+  {test:/avocado/i, url:BIS_IMG_BASE+'100b-1024x1024.jpg'},
+  {test:/foot cream/i, url:BIS_IMG_BASE+'Foot-Cream-.jpeg'},
+  {test:/shower gel/i, url:BIS_IMG_BASE+'100j-1024x1024.jpg'},
+];
+const LOVELAB_PRODUCT_IMAGES=[
+  {test:/face cream/i, url:LL_IMG_BASE+'2024/10/Healthy-Glow-Face-Cream-100ml.jpg'},
+  {test:/face serum/i, url:LL_IMG_BASE+'2024/10/Healthy-Glow-Face-Serum-40ml-300x300.jpg'},
+  {test:/lip balm/i, url:LL_IMG_BASE+'2024/10/Brightening-Lip-Balm-300x300.jpg'},
+  {test:/face wash/i, url:LL_IMG_BASE+'2025/05/A12-300x300.jpg'},
+];
+function findProductImage(name){
+  const dict=STATE.brand==='Love&Lab'?LOVELAB_PRODUCT_IMAGES:BISEKA_PRODUCT_IMAGES;
+  for(const {test,url} of dict) if(test.test(name)) return url;
+  return null;
+}
+function productThumb(name){
+  const url=findProductImage(name);
+  if(url) return `<span class="prod-thumb"><img src="${url}" alt="" loading="lazy"></span>`;
+  const letter=esc(name.trim().charAt(0).toUpperCase()||'?');
+  return `<span class="prod-thumb prod-thumb-fallback">${letter}</span>`;
+}
 function secProducts(d){
   const sec=el('section','section');sec.id='sec-products';
   sec.append(sectionTitle('02','Products',`Units for every product, month by month — ${STATE.brand} · ${STATE.channel}`));
@@ -709,11 +786,11 @@ function secProducts(d){
   function render(q=''){
     const f=rows.filter(r=>r.n.toLowerCase().includes(q.toLowerCase()));
     const t=el('table');
-    t.innerHTML=`<thead><tr><th>Product</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead>`;
+    t.innerHTML=`<thead><tr><th></th><th>Product</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead>`;
     const tb=el('tbody');
     f.forEach(r=>{
       const tr=el('tr');
-      tr.innerHTML=`<td title="${esc(r.n)}">${esc(r.n)}</td>`+
+      tr.innerHTML=`<td class="prod-thumb-cell">${productThumb(r.n)}</td><td title="${esc(r.n)}">${esc(r.n)}</td>`+
         r.v.map(x=>`<td class="cellbar"><i style="width:${x/maxCell*100}%"></i><span>${x?fmt(x):'·'}</span></td>`).join('')+
         `<td class="tot">${fmt(r.tot)}</td>`;
       tb.append(tr);
@@ -1316,9 +1393,16 @@ function rowFromVals(name,vals,tot){const maxCell=Math.max(1,...vals);const tr=e
   tr.innerHTML=`<td title="${esc(name)}">${esc(name)}</td>`+vals.map(x=>`<td class="cellbar"><i style="width:${x/maxCell*100}%"></i><span>${x?fmt(x):'·'}</span></td>`).join('')+`<td class="tot">${fmt(tot)}</td>`;return tr;}
 
 /* ---------- controls & render ---------- */
+const BRAND_LOGO={
+  'Biseka':'https://biseka.co/wp-content/uploads/2025/08/Biseka-Logo.png',
+  'Love&Lab':'https://loveandlab.com/wp-content/uploads/2024/10/Logo-PNG-scaled-120x40.png',
+};
 function buildControls(){
   const bs=$('#brandSeg');bs.innerHTML='';
-  Object.keys(DATA.brands).forEach(b=>{const btn=el('button',b===STATE.brand?'on':'',b);btn.onclick=()=>{STATE.brand=b;STATE.channel=Object.keys(DATA.brands[b].channels)[0];render();};bs.append(btn);});
+  Object.keys(DATA.brands).forEach(b=>{
+    const logo=BRAND_LOGO[b];
+    const btn=el('button',b===STATE.brand?'on':'', (logo?`<img src="${logo}" alt="" class="brand-btn-logo">`:'')+esc(b));
+    btn.onclick=()=>{STATE.brand=b;STATE.channel=Object.keys(DATA.brands[b].channels)[0];render();};bs.append(btn);});
   if(!DATA.brands['Trackings']){
     // no tracking data available to build a combined view — keep it visible but disabled
     const ee=el('button','',"Trackings");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
