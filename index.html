@@ -200,7 +200,7 @@ svg.chart.donut{overflow:visible}
   .cols-4{grid-template-columns:1fr}
   .kpi .k-val{font-size:28px}
 }
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* ---- data loader ---- */
 .hdr-actions{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
@@ -223,6 +223,70 @@ svg.chart.donut{overflow:visible}
 .privacy b{color:var(--accent)}
 .loaderr{color:#a3352f;background:#FBECEC;border:1px solid #F0C9C9;border-radius:10px;padding:11px 14px;font-size:13px;margin-top:16px;display:none}
 @media(max-width:640px){#loader{padding:0 14px;margin:26px auto 0}.drop{padding:34px 18px}.hdr-actions{margin-top:10px}}
+
+/* ============ animation & interaction polish ============ */
+
+/* Card + KPI hover lift */
+.card{position:relative;transition:box-shadow .2s ease, transform .2s ease}
+.card:hover{box-shadow:0 2px 4px rgba(16,24,40,.06),0 10px 24px rgba(16,24,40,.10);transform:translateY(-2px)}
+.kpi{position:relative;overflow:visible;transition:box-shadow .2s ease, transform .2s ease}
+.kpi:hover{box-shadow:0 2px 4px rgba(16,24,40,.06),0 10px 24px rgba(16,24,40,.10);transform:translateY(-2px)}
+
+/* Table row hover tween (background-color already set on rule above; this adds the transition) */
+tbody tr{transition:background-color .15s ease}
+
+/* KPI value row + trend indicator */
+.k-val-row{display:flex;align-items:baseline;gap:2px;margin-top:6px}
+.k-val-row .k-val{margin-top:0}
+.k-trend{display:inline-flex;align-items:center;margin-left:6px;flex:0 0 auto}
+.k-trend svg{width:12px;height:12px;display:block}
+.k-trend.up{color:var(--biseka)}
+.k-trend.down{color:#B3261E}
+
+/* Sidebar active-section sliding indicator */
+.sidenav{position:relative}
+.sidenav a{position:relative;z-index:1}
+.nav-indicator{position:absolute;background:rgba(255,255,255,.1);border-left:2px solid #7FA5C6;border-radius:8px;opacity:0;pointer-events:none;z-index:0;
+  transition:top .28s cubic-bezier(.3,.7,.4,1), left .28s cubic-bezier(.3,.7,.4,1), width .28s cubic-bezier(.3,.7,.4,1), height .28s cubic-bezier(.3,.7,.4,1), opacity .2s ease}
+.nav-indicator.no-anim{transition:none}
+@media(max-width:900px){
+  .nav-indicator{border-left:none;border-bottom:2px solid #7FA5C6;border-radius:8px 8px 0 0}
+}
+
+/* Cross-fade for filter-driven content swaps */
+#app{transition:opacity .18s ease}
+#app.fading{opacity:0}
+
+/* Chart draw-in: line charts and donut segments */
+svg.chart polyline{transition:stroke-dashoffset .8s cubic-bezier(.2,.7,.2,1)}
+svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
+
+/* Drag-over pulse (adds to the existing color change on .drop.hot) */
+.drop.hot{animation:dropPulse 1.1s ease-in-out infinite}
+@keyframes dropPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+
+/* Skeleton shimmer loading state, shown while the workbook parses */
+.skeleton{max-width:1180px;margin:44px auto 0;padding:0 24px}
+.skel-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.skel-row.cols-2{grid-template-columns:1fr 1fr}
+.skel-block{border-radius:16px;background:linear-gradient(100deg,var(--line-soft) 30%,#F3F5F7 45%,var(--line-soft) 60%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
+.skel-kpi{height:88px}
+.skel-chart{height:220px}
+.skel-msg{text-align:center;font-size:13px;color:var(--ink-soft);font-weight:600;margin:4px 0 20px;min-height:18px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(max-width:900px){.skel-row{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.skel-row{grid-template-columns:1fr}}
+
+/* Milestone confetti burst */
+.confetti-piece{position:absolute;width:6px;height:10px;top:6px;left:50%;opacity:0;border-radius:1px;pointer-events:none;animation:confettiFall 1.1s ease-out forwards;z-index:5}
+@keyframes confettiFall{
+  0%{opacity:1;transform:translate(0,0) rotate(0deg)}
+  100%{opacity:0;transform:translate(var(--dx,0px),90px) rotate(var(--rot,180deg))}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .card:hover,.kpi:hover{transform:none;box-shadow:var(--shadow)}
+}
 </style>
 </head>
 <body>
@@ -251,6 +315,20 @@ svg.chart.donut{overflow:visible}
   </div>
   <div class="loaderr" id="loaderr"></div>
   <div class="privacy">🔒 <b>Private:</b> your file is read entirely in your browser — nothing is uploaded or sent anywhere.</div>
+</div>
+
+<div class="skeleton" id="loadingSkel" style="display:none">
+  <div class="skel-msg" id="loadMsg">Reading your orders…</div>
+  <div class="skel-row">
+    <div class="skel-block skel-kpi"></div>
+    <div class="skel-block skel-kpi"></div>
+    <div class="skel-block skel-kpi"></div>
+    <div class="skel-block skel-kpi"></div>
+  </div>
+  <div class="skel-row cols-2">
+    <div class="skel-block skel-chart"></div>
+    <div class="skel-block skel-chart"></div>
+  </div>
 </div>
 
 <div id="dash" style="display:none">
@@ -301,6 +379,71 @@ const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=nu
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 let MONTHS=[];
 const STATE={brand:null,channel:null,month:'all'}; // month: 'all' or index 0..6
+
+/* ---------- animation helpers ---------- */
+function prefersReducedMotion(){return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);}
+const kpiState={}; // label -> {value, max}
+let firstRender=true;
+
+function animateNumber(node,from,to,opts){
+  opts=opts||{};
+  const decimals=opts.decimals||0, suffix=opts.suffix||'', duration=opts.duration||900;
+  const fmtNum=v=>{
+    let s=v.toFixed(decimals);
+    const parts=s.split('.');
+    parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');
+    return parts.join('.')+suffix;
+  };
+  if(prefersReducedMotion()||from===to){node.textContent=fmtNum(to);return;}
+  const start=performance.now();
+  function step(t){
+    const p=Math.min(1,(t-start)/duration);
+    const eased=1-Math.pow(1-p,3);
+    node.textContent=fmtNum(from+(to-from)*eased);
+    if(p<1)requestAnimationFrame(step);else node.textContent=fmtNum(to);
+  }
+  requestAnimationFrame(step);
+}
+function trendIcon(dir){
+  const up=dir==='up';
+  const span=document.createElement('span');
+  span.className='k-trend '+(up?'up':'down');
+  span.title=up?'Up vs previous view':'Down vs previous view';
+  span.innerHTML=up
+    ?'<svg viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    :'<svg viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  return span;
+}
+function spawnConfetti(target){
+  if(prefersReducedMotion())return;
+  const colors=['#1F6E52','#93702F','#2C5C99','#9B4460','#0B3B60'];
+  for(let i=0;i<14;i++){
+    const p=document.createElement('span');
+    p.className='confetti-piece';
+    p.style.setProperty('--dx',(Math.random()*120-60).toFixed(0)+'px');
+    p.style.setProperty('--rot',(Math.random()*360).toFixed(0)+'deg');
+    p.style.left=(40+Math.random()*20)+'%';
+    p.style.background=colors[i%colors.length];
+    p.style.animationDelay=(Math.random()*120)+'ms';
+    target.appendChild(p);
+    setTimeout(()=>p.remove(),1400);
+  }
+}
+function animateCharts(container){
+  const reduced=prefersReducedMotion();
+  container.querySelectorAll('svg.chart:not(.donut):not(.wide) polyline').forEach(p=>{
+    try{
+      const len=p.getTotalLength();
+      if(reduced){p.style.strokeDasharray='none';p.style.strokeDashoffset='0';return;}
+      p.style.strokeDasharray=len;p.style.strokeDashoffset=len;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{p.style.strokeDashoffset='0';}));
+    }catch(e){}
+  });
+  container.querySelectorAll('svg.chart.donut circle[data-final]').forEach(c=>{
+    if(reduced){c.setAttribute('stroke-dasharray',c.dataset.final);return;}
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{c.setAttribute('stroke-dasharray',c.dataset.final);}));
+  });
+}
 
 function accentFor(brand){return brand==='Love&Lab'?'love':'biseka';}
 function setAccent(brand){
@@ -369,7 +512,8 @@ function donutChart(parts,{size=176,thickness=24}={}){
   let offset=0,segs='';
   parts.forEach(p=>{
     const len=p.value/total*circ;
-    segs+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${thickness}" stroke-dasharray="${len.toFixed(2)} ${(circ-len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${c} ${c})"><title>${esc(p.label)} · ${fmt(p.value)} (${(p.value/total*100).toFixed(1)}%)</title></circle>`;
+    const finalDash=`${len.toFixed(2)} ${(circ-len).toFixed(2)}`;
+    segs+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${thickness}" stroke-dasharray="0 ${circ.toFixed(2)}" data-final="${finalDash}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${c} ${c})"><title>${esc(p.label)} · ${fmt(p.value)} (${(p.value/total*100).toFixed(1)}%)</title></circle>`;
     offset+=len;
   });
   return `<svg class="chart donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${segs}
@@ -999,7 +1143,29 @@ function secExactExtract(){
 }
 
 /* ---------- small factories ---------- */
-function kpi(label,val,sub,hero){const e=el('div','kpi'+(hero?' hero':''));e.innerHTML=`<div class="k-label">${label}</div><div class="k-val tnum">${val}</div><div class="k-sub">${sub}</div>`;return e;}
+function kpi(label,val,sub,hero){
+  const e=el('div','kpi'+(hero?' hero':''));
+  e.innerHTML=`<div class="k-label">${label}</div><div class="k-val-row"><span class="k-val tnum"></span></div><div class="k-sub">${sub||''}</div>`;
+  const valEl=e.querySelector('.k-val');
+  const rowEl=e.querySelector('.k-val-row');
+  const m=String(val).trim().match(/^(-?)([\d,]+(?:\.\d+)?)(%?)$/);
+  if(m){
+    const num=(m[1]==='-'?-1:1)*parseFloat(m[2].replace(/,/g,''));
+    const decimals=(m[2].split('.')[1]||'').length;
+    const prev=kpiState[label];
+    const from=prev?prev.value:0;
+    animateNumber(valEl,from,num,{decimals,suffix:m[3]});
+    if(prev&&prev.value!==num){rowEl.appendChild(trendIcon(num>prev.value?'up':'down'));}
+    if(hero&&prev&&num>prev.max){
+      setTimeout(()=>spawnConfetti(e),prefersReducedMotion()?0:900);
+    }
+    kpiState[label]={value:num,max:prev?Math.max(prev.max,num):num};
+  }else{
+    valEl.textContent=val;
+    kpiState[label]=undefined;
+  }
+  return e;
+}
 function card(title,hint){const c=el('div','card');if(title!==''||hint!==''){c.innerHTML=`<h3>${title}</h3>${hint?`<div class="hint">${hint}</div>`:''}`;}return c;}
 function sectionTitle(num,title,sub){const w=el('div');const t=el('div','section-title');t.innerHTML=`<span class="num">${num}</span><h2>${title}</h2>`;w.append(t);if(sub)w.append(el('p','section-sub',sub));return w;}
 function legend(names){const l=el('div','legend');const cols=palette(names.length);names.forEach((n,i)=>{const s=el('span');s.innerHTML=`<b style="background:${cols[i]}"></b>${esc(n)}`;l.append(s);});return l;}
@@ -1037,6 +1203,23 @@ function buildNav(d){
     const a=el('a','',s.name);a.onclick=()=>{const t=$('#sec-'+s.id);if(t)t.scrollIntoView({behavior:'smooth'});};a.dataset.sec=s.id;
     (groupEl||nav).append(a);
   });
+  const indicator=el('div','nav-indicator');indicator.id='navIndicator';
+  nav.appendChild(indicator);
+}
+function updateNavIndicator(instant){
+  const nav=$('#sectionNav');if(!nav)return;
+  const indicator=nav.querySelector('.nav-indicator');if(!indicator)return;
+  const active=nav.querySelector('a.on');
+  if(!active){indicator.style.opacity='0';return;}
+  if(instant)indicator.classList.add('no-anim');
+  const navRect=nav.getBoundingClientRect();
+  const r=active.getBoundingClientRect();
+  indicator.style.top=(r.top-navRect.top+nav.scrollTop)+'px';
+  indicator.style.left=(r.left-navRect.left+nav.scrollLeft)+'px';
+  indicator.style.width=r.width+'px';
+  indicator.style.height=r.height+'px';
+  indicator.style.opacity='1';
+  if(instant){void indicator.offsetWidth;indicator.classList.remove('no-anim');}
 }
 function activeSections(d){return SECTIONS.filter(s=>!s.when||s.when(d));}
 
@@ -1044,20 +1227,35 @@ function render(){
   setAccent(STATE.brand);
   buildControls();
   const d=cur();
-  buildNav(d);
-  $('#hdrsub').textContent=`${STATE.brand} — ${STATE.channel} channel`;
-  const app=$('#app');app.innerHTML='';
-  activeSections(d).forEach(s=>app.append(s.build(d)));
-  app.querySelectorAll('.section-title .num').forEach((n,i)=>n.textContent=String(i+1).padStart(2,'0'));
-  $('#foot').innerHTML=`Data range Jan–Jul 2026 · generated ${DATA.meta.lastUpdated} · ${DATA.meta.note} “Sales” = units sold. City/District coverage is online orders only; care-agent and shop views are staff-side. Bottom-5 shows the lowest sellers among products that had at least one sale in the selected month.`;
-  // scroll-spy
-  spy(d);
+  const app=$('#app');
+  const doUpdate=()=>{
+    buildNav(d);
+    $('#hdrsub').textContent=`${STATE.brand} — ${STATE.channel} channel`;
+    app.innerHTML='';
+    activeSections(d).forEach(s=>app.append(s.build(d)));
+    app.querySelectorAll('.section-title .num').forEach((n,i)=>n.textContent=String(i+1).padStart(2,'0'));
+    $('#foot').innerHTML=`Data range Jan–Jul 2026 · generated ${DATA.meta.lastUpdated} · ${DATA.meta.note} “Sales” = units sold. City/District coverage is online orders only; care-agent and shop views are staff-side. Bottom-5 shows the lowest sellers among products that had at least one sale in the selected month.`;
+    animateCharts(app);
+    app.classList.remove('fading');
+    // scroll-spy
+    spy(d);
+  };
+  if(firstRender||prefersReducedMotion()){
+    firstRender=false;
+    doUpdate();
+  }else{
+    app.classList.add('fading');
+    setTimeout(doUpdate,180);
+  }
 }
 function spy(d){
   const links=[...document.querySelectorAll('#sectionNav a')];
-  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.dataset.sec===e.target.id.replace('sec-','')));}});},{rootMargin:'-45% 0px -50% 0px'});
+  if(links.length&&!links.some(l=>l.classList.contains('on')))links[0].classList.add('on');
+  updateNavIndicator(true);
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.dataset.sec===e.target.id.replace('sec-','')));updateNavIndicator(false);}});},{rootMargin:'-45% 0px -50% 0px'});
   activeSections(d).forEach(s=>{const t=$('#sec-'+s.id);if(t)obs.observe(t);});
 }
+window.addEventListener('resize',()=>updateNavIndicator(true));
 
 /* init */
 /* ================= data loading — reads the Excel in your browser ================= */
@@ -1261,21 +1459,41 @@ function buildDATA(wb){
 
 /* ---------- file handling ---------- */
 function showError(m){const e=$('#loaderr');e.textContent=m;e.style.display='block';}
+const LOAD_MESSAGES=['Reading your orders…','Sorting cities…','Tallying shipments…','Almost ready…'];
+let loadMsgTimer=null;
+function startLoadingMessages(){
+  const msgEl=$('#loadMsg');if(!msgEl)return;
+  let i=0;msgEl.textContent=LOAD_MESSAGES[0];
+  loadMsgTimer=setInterval(()=>{i=(i+1)%LOAD_MESSAGES.length;msgEl.textContent=LOAD_MESSAGES[i];},900);
+}
+function stopLoadingMessages(){if(loadMsgTimer){clearInterval(loadMsgTimer);loadMsgTimer=null;}}
 function loadWorkbook(file){
-  const drop=$('#drop'); if(drop)drop.classList.add('busy'); $('#loaderr').style.display='none';
+  $('#loaderr').style.display='none';
+  $('#loader').style.display='none';
+  const skel=$('#loadingSkel'); if(skel)skel.style.display='block';
+  startLoadingMessages();
   const reader=new FileReader();
   reader.onload=ev=>{try{
       const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
       DATA=buildDATA(wb); MONTHS=DATA.meta.months; STATE.month='all';
       STATE.brand=Object.keys(DATA.brands)[0];
       STATE.channel=Object.keys(DATA.brands[STATE.brand].channels)[0];
-      $('#loader').style.display='none'; $('#dash').style.display='block'; $('#hdrActions').style.display='flex';
+      stopLoadingMessages(); if(skel)skel.style.display='none';
+      $('#dash').style.display='block'; $('#hdrActions').style.display='flex';
       $('#dataChip').textContent=DATA.meta.range+'  ·  '+fmt(DATA.meta.orders)+' orders';
       $('#eyebrow').textContent='Orders · '+DATA.meta.range;
       render(); window.scrollTo(0,0);
-    }catch(err){if(drop)drop.classList.remove('busy');showError('Couldn’t read this file — '+err.message);}
+    }catch(err){
+      stopLoadingMessages(); if(skel)skel.style.display='none';
+      $('#loader').style.display='block';
+      showError('Couldn’t read this file — '+err.message);
+    }
   };
-  reader.onerror=()=>{if(drop)drop.classList.remove('busy');showError('Couldn’t read this file.');};
+  reader.onerror=()=>{
+    stopLoadingMessages(); if(skel)skel.style.display='none';
+    $('#loader').style.display='block';
+    showError('Couldn’t read this file.');
+  };
   reader.readAsArrayBuffer(file);
 }
 (function initLoader(){
