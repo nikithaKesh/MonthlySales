@@ -149,6 +149,28 @@ svg.chart.donut{overflow:visible}
 .dual-fill{height:100%;border-radius:6px;width:0;transition:width .6s cubic-bezier(.2,.7,.2,1)}
 .dual-val{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10.5px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;text-shadow:0 0 4px var(--surface),0 0 4px var(--surface)}
 
+/* ---- Courier profile cards ---- */
+:root{
+  --c-fardar:#173A63; --c-fardar-tint:#E7EDF3;
+  --c-citypack:#1F6E52; --c-citypack-tint:#E6EFEA;
+  --c-flash:#B4501F; --c-flash-tint:#F3E7DC;
+  --c-domex:#7C2036; --c-domex-tint:#F1E2E5;
+}
+.courier-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:720px){.courier-grid{grid-template-columns:1fr}}
+.courier-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.courier-card-top{display:flex;gap:14px;padding:18px 20px 0}
+.courier-photo{flex:0 0 84px;height:84px;border-radius:12px;overflow:hidden;background:var(--paper);border:1px solid var(--line-soft)}
+.courier-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.courier-id{flex:1;min-width:0}
+.courier-name{font-family:"Source Serif 4",serif;font-size:17px;font-weight:600;line-height:1.2}
+.courier-tag{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.4}
+.courier-stats{margin:16px 20px 6px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.courier-stat{background:var(--paper);border-radius:10px;padding:9px 11px}
+.courier-stat .cs-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.courier-stat .cs-val{font-family:"Source Serif 4",serif;font-size:16px;font-weight:600;margin-top:3px}
+.courier-verdict{margin:10px 20px 20px;font-size:12px;color:var(--ink-soft);border-left:2px solid var(--line);padding-left:10px}
+
 @media(max-width:1024px){
   .wrap,.topbar,footer{padding-left:20px;padding-right:20px}
 }
@@ -565,6 +587,7 @@ const SECTIONS=[
   {id:'geo',     name:'Cities & Districts', group:'Geography & logistics', build:secGeo, when:d=>d.cityMonthly},
   {id:'bis-tracking',name:'BIS Tracking', group:'Geography & logistics', build:()=>secTrackDetail('bis'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
   {id:'lovelab-tracking',name:'Lovelab Tracking', group:'Geography & logistics', build:()=>secTrackDetail('lovelab'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
+  {id:'courier-profiles',name:'Courier Comparison', group:'Geography & logistics', build:secCourierProfiles, when:()=>DATA&&DATA.trackingRaw&&(DATA.trackingRaw.bis||DATA.trackingRaw.lovelab)},
   {id:'Trackings',name:'Combined Trackings', group:'Cross-brand', build:secExactExtract, when:d=>d.isExactExtract},
 ];
 
@@ -1139,6 +1162,125 @@ function secExactExtract(){
     sec.append(el('div','note',`Only ${brands[0].name}'s tracking sheet was found in this file — add the other brand's tracking tab to unlock brand-vs-brand comparisons here.`));
   }
 
+  return sec;
+}
+
+/* ---------- courier profile cards ---------- */
+const COURIER_META={
+  'Fardar Express':{
+    color:'var(--c-fardar)',tint:'var(--c-fardar-tint)',
+    tag:'FDE Domestic (Pvt) Ltd · est. 2019, Sri Lankan–Chinese joint venture · 90+ branches islandwide',
+    photo:'https://loveandlab.com/wp-content/uploads/2024/10/Healthy-Glow-Face-Cream-100ml.jpg',
+    photoAlt:'Love&Lab Healthy Glow Face Cream',
+    verdict:'The workhorse — biggest branch network of the four, and usually the default courier by sheer share.'
+  },
+  'City Pack':{
+    color:'var(--c-citypack)',tint:'var(--c-citypack-tint)',
+    tag:'Citypak (IML Delivery Systems) · Hayleys Advantis Group · 30+ years, 45+ branches',
+    photo:'https://biseka.co/wp-content/uploads/2025/08/100m-1024x1024.jpg',
+    photoAlt:'Biseka Herbal Shampoo',
+    verdict:'Backed by a corporate logistics group, with real strength up-country where the others barely register.'
+  },
+  'Flash Delivery':{
+    color:'var(--c-flash)',tint:'var(--c-flash-tint)',
+    tag:'No public storefront or tracking site — booked directly, Colombo-focused rider service',
+    photo:'https://loveandlab.com/wp-content/uploads/2024/10/Brightening-Lip-Balm-300x300.jpg',
+    photoAlt:'Love&Lab Brightening Lip Balm',
+    verdict:'The specialist — near-exclusively Colombo, reads like a tight same-city rider network rather than an islandwide courier.'
+  },
+  'Domex':{
+    color:'var(--c-domex)',tint:'var(--c-domex-tint)',
+    tag:'Domestic Express (Pvt) Ltd · 20+ years in Sri Lankan courier',
+    photo:'https://biseka.co/wp-content/uploads/2025/08/100i-1024x1024.jpg',
+    photoAlt:'Biseka Herbal Hair Oil',
+    verdict:'Smallest volume of the group — worth watching if delivery and return rate are a priority.'
+  }
+};
+function normRiderName(n){
+  const k=String(n).trim();
+  if(/^city\s*pack$/i.test(k))return 'City Pack';
+  if(/^fardar/i.test(k))return 'Fardar Express';
+  if(/^flash/i.test(k))return 'Flash Delivery';
+  if(/^domex/i.test(k))return 'Domex';
+  return k;
+}
+function secCourierProfiles(){
+  const raw=DATA.trackingRaw||{};
+  const sources=[];
+  if(raw.bis)sources.push(raw.bis);
+  if(raw.lovelab)sources.push(raw.lovelab);
+  const sec=el('section','section');sec.id='sec-courier-profiles';
+  sec.append(sectionTitle('','Courier Comparison',`Every delivery company across Biseka and Love&amp;Lab, merged into one profile each · ${monthLabel()}`));
+  if(!sources.length){sec.append(el('div','empty','No tracking sheets found in this file.'));return sec;}
+
+  /* merge quantity (respects month filter), and all-time order/status totals, across brands */
+  const qty={}, orders={}, statusTotals={}, cityQty={};
+  sources.forEach(t=>{
+    Object.entries(t.riderQtyMonthly||{}).forEach(([r,v])=>{
+      const n=normRiderName(r);qty[n]=(qty[n]||0)+pick(v);
+    });
+    Object.entries(t.riderMonthly||{}).forEach(([r,v])=>{
+      const n=normRiderName(r);orders[n]=(orders[n]||0)+pick(v);
+    });
+    Object.entries(t.riderStatusTotals||{}).forEach(([r,statMap])=>{
+      const n=normRiderName(r);(statusTotals[n]=statusTotals[n]||{});
+      Object.entries(statMap).forEach(([st,c])=>{statusTotals[n][st]=(statusTotals[n][st]||0)+c;});
+    });
+    Object.entries(t.riderCityQtyMonthly||{}).forEach(([r,cityMap])=>{
+      const n=normRiderName(r);(cityQty[n]=cityQty[n]||{});
+      Object.entries(cityMap).forEach(([c,v])=>{cityQty[n][c]=(cityQty[n][c]||0)+pick(v);});
+    });
+  });
+  const names=Object.keys(qty).filter(n=>qty[n]>0&&COURIER_META[n]).sort((a,b)=>qty[b]-qty[a]);
+  if(!names.length){sec.append(el('div','empty','No recognised delivery companies in this data yet.'));return sec;}
+  const totalQty=names.reduce((s,n)=>s+qty[n],0);
+
+  /* summary strip */
+  const k=el('div','grid cols-4');
+  k.append(
+    kpi('Delivery companies',fmt(names.length),monthLabel(),true),
+    kpi('Combined quantity',fmt(totalQty),`units · ${monthLabel()}`),
+    kpi('Leading courier',names[0],`${totalQty?Math.round(qty[names[0]]/totalQty*100):0}% of quantity`),
+    kpi('Orders tracked (all-time)',fmt(names.reduce((s,n)=>s+(orders[n]||0),0)),'across both brands'),
+  );
+  sec.append(k);
+
+  /* profile cards */
+  const grid=el('div','courier-grid');
+  names.forEach(n=>{
+    const meta=COURIER_META[n];
+    const st=statusTotals[n]||{};
+    const totOrd=Object.values(st).reduce((a,b)=>a+b,0)||1;
+    const delivered=(st['Delivered']||0)+(st['DELIVERED']||0);
+    const returned=st['Returned']||0;
+    const delRate=(delivered/totOrd*100).toFixed(1);
+    const retRate=(returned/totOrd*100).toFixed(1);
+    const cities=cityQty[n]||{};
+    const topCity=Object.entries(cities).sort((a,b)=>b[1]-a[1])[0];
+    const card=el('div','courier-card');
+    card.style.borderTop=`4px solid ${meta.color}`;
+    card.innerHTML=`
+      <div class="courier-card-top">
+        <div class="courier-photo"><img src="${meta.photo}" alt="${esc(meta.photoAlt)}" loading="lazy"></div>
+        <div class="courier-id">
+          <div class="courier-name">${esc(n)}</div>
+          <div class="courier-tag">${esc(meta.tag)}</div>
+        </div>
+      </div>
+      <div class="courier-stats">
+        <div class="courier-stat"><div class="cs-label">Quantity shipped</div><div class="cs-val" style="color:${meta.color}">${fmt(qty[n])}</div></div>
+        <div class="courier-stat"><div class="cs-label">Share of volume</div><div class="cs-val">${totalQty?Math.round(qty[n]/totalQty*100):0}%</div></div>
+        <div class="courier-stat"><div class="cs-label">Delivered rate</div><div class="cs-val">${delRate}%</div></div>
+        <div class="courier-stat"><div class="cs-label">Returned rate</div><div class="cs-val">${retRate}%</div></div>
+      </div>
+      <div class="courier-stats" style="grid-template-columns:1fr;margin-top:0">
+        <div class="courier-stat"><div class="cs-label">Strongest area</div><div class="cs-val" style="font-size:13.5px">${topCity?esc(topCity[0])+' · '+fmt(topCity[1])+' units':'—'}</div></div>
+      </div>
+      <div class="courier-verdict">${esc(meta.verdict)}</div>`;
+    grid.append(card);
+  });
+  sec.append(grid);
+  sec.append(el('div','note','Delivered / Returned rates are all-time order-status totals per courier (not affected by the Month filter above); quantity and share respect the selected month. Product photos are pulled from loveandlab.com and biseka.co for visual flavour, not tied to a specific courier.'));
   return sec;
 }
 
