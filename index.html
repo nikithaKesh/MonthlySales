@@ -71,7 +71,8 @@ h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;margin:0;let
 .cols-2{grid-template-columns:1fr 1fr}
 .cols-4{grid-template-columns:repeat(4,1fr)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
-.card h3{font-size:16px;margin-bottom:2px}
+.card h3{font-size:16px;margin-bottom:2px;display:flex;align-items:center;gap:7px}
+.card h3 svg{flex:0 0 auto;width:15px;height:15px;color:var(--accent)}
 .card .hint{font-size:12px;color:var(--muted);margin-bottom:16px}
 .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
 .card-head h3{margin-bottom:2px}
@@ -121,7 +122,8 @@ td.tot{font-weight:700}
 
 /* misc */
 .pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--accent-tint);color:var(--accent)}
-.note{font-size:12px;color:var(--muted);background:var(--line-soft);border-radius:10px;padding:11px 14px;margin-top:8px}
+.note{font-size:12px;color:var(--muted);background:var(--line-soft);border-radius:10px;padding:11px 14px;margin-top:8px;display:flex;gap:7px;align-items:flex-start}
+.note svg{flex:0 0 auto;margin-top:1px}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-bottom:12px}
 .legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
 .empty{color:var(--muted);font-size:13px;padding:20px 0;text-align:center}
@@ -161,16 +163,28 @@ svg.chart.donut{overflow:visible}
 @media (max-width:720px){.courier-grid{grid-template-columns:1fr}}
 .courier-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
 .courier-card-top{display:flex;gap:14px;padding:18px 20px 0}
-.courier-photo{flex:0 0 84px;height:84px;border-radius:12px;overflow:hidden;background:var(--paper);border:1px solid var(--line-soft)}
+.courier-photo{flex:0 0 84px;height:84px;border-radius:12px;overflow:hidden;background:var(--paper);border:1px solid var(--line-soft);display:flex;align-items:center;justify-content:center}
 .courier-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.courier-icon{display:flex;align-items:center;justify-content:center}
+.courier-icon svg{width:40px;height:40px}
 .courier-id{flex:1;min-width:0}
-.courier-name{font-family:"Source Serif 4",serif;font-size:17px;font-weight:600;line-height:1.2}
+.courier-name{font-family:"Source Serif 4",serif;font-size:17px;font-weight:600;line-height:1.2;display:flex;align-items:center;gap:7px}
+.courier-name .name-icon{flex:0 0 auto;display:inline-flex}
+.courier-name .name-icon svg{width:15px;height:15px}
 .courier-tag{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.4}
 .courier-stats{margin:16px 20px 6px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .courier-stat{background:var(--paper);border-radius:10px;padding:9px 11px}
-.courier-stat .cs-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.courier-stat .cs-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:5px}
+.courier-stat .cs-label svg{width:12px;height:12px;flex:0 0 auto}
 .courier-stat .cs-val{font-family:"Source Serif 4",serif;font-size:16px;font-weight:600;margin-top:3px}
-.courier-verdict{margin:10px 20px 20px;font-size:12px;color:var(--ink-soft);border-left:2px solid var(--line);padding-left:10px}
+.courier-verdict{margin:10px 20px 20px;font-size:12px;color:var(--ink-soft);border-left:2px solid var(--line);padding-left:10px;display:flex;gap:8px;align-items:flex-start}
+.courier-verdict svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px;color:var(--muted)}
+.sec-icon{display:inline-flex;vertical-align:-4px;margin-right:8px;color:var(--accent)}
+.sec-icon svg{width:20px;height:20px}
+.k-label .stat-icon,.k-label{display:inline-flex;align-items:center;gap:6px}
+.k-label svg{width:12px;height:12px;flex:0 0 auto}
+.bar-row .lab .rider-icon{display:inline-flex;margin-right:6px;vertical-align:-2px;color:var(--muted)}
+.bar-row .lab .rider-icon svg{width:13px;height:13px}
 
 /* ---- brand hero banner ---- */
 .brand-hero{display:flex;gap:18px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin-top:14px;box-shadow:var(--shadow)}
@@ -590,6 +604,41 @@ function barList(rows,{lo=false,max=null}={}){
   return wrap;
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function riderBarList(rows){
+  if(!rows.length) return `<div class="empty">No sales in ${monthLabel()}.</div>`;
+  const mx=Math.max(1,...rows.map(r=>r.value));
+  const wrap=el('div','bars');
+  rows.forEach((r,i)=>{
+    const row=el('div','bar-row');
+    const meta=(typeof COURIER_META!=='undefined')?COURIER_META[typeof normRiderName==='function'?normRiderName(r.label):r.label]:null;
+    const ic=`<span class="rider-icon" style="${meta?`color:${meta.color}`:''}">${icon(meta?meta.icon:'truck',13)}</span>`;
+    row.innerHTML=`<div class="lab" title="${esc(r.label)}">${r.rank?`<span class="rank">${r.rank}</span>`:''}${ic}${esc(r.label)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:0"></div></div>
+      <div class="val">${fmt(r.value)}</div>`;
+    wrap.appendChild(row);
+    requestAnimationFrame(()=>row.querySelector('.bar-fill').style.width=(r.value/mx*100)+'%');
+  });
+  return wrap;
+}
+
+/* ---------- icon library (inline SVG, no external images) ---------- */
+const ICON_PATHS={
+  truck:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  bike:'<circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm-3 11.5V14l-3-3 4-3 2 3h2"/>',
+  warehouse:'<path d="M22 8.35V20a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.35a2 2 0 0 1 1.15-1.81l8-4a2 2 0 0 1 1.7 0l8 4A2 2 0 0 1 22 8.35Z"/><path d="M6 17h.01M18 17h.01"/>',
+  package:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/>',
+  percent:'<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  check:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  rotateBack:'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+  pin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/>',
+  trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M5 4H3v2a4 4 0 0 0 4 4M19 4h2v2a4 4 0 0 1-4 4"/>',
+  clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="M9 12h6M9 16h6"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+};
+function icon(name,size){
+  const p=ICON_PATHS[name];if(!p)return'';
+  return `<svg viewBox="0 0 24 24" width="${size||14}" height="${size||14}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
 
 /* ---------- sections ---------- */
 const SECTIONS=[
@@ -920,7 +969,7 @@ function secPay(d){
 function secTracking(d){
   const t=d.tracking;
   const sec=el('section','section');sec.id='sec-tracking';
-  sec.append(sectionTitle('','Delivery Tracking',`Courier shipments for ${STATE.brand} — status, cities, districts & delivery companies · ${monthLabel()}`));
+  sec.append(sectionTitle('',`<span class="sec-icon">${icon('truck',20)}</span>Delivery Tracking`,`Courier shipments for ${STATE.brand} — status, cities, districts & delivery companies · ${monthLabel()}`));
 
   /* KPI strip */
   const totalShip=pick(t.totalMonthly);
@@ -932,7 +981,7 @@ function secTracking(d){
     kpi('Shipments',fmt(totalShip),monthLabel(),true),
     kpi('Cities reached',fmt(citiesN),monthLabel()),
     kpi('Districts reached',fmt(distN),monthLabel()),
-    kpi('Delivery companies',fmt(ridersN),monthLabel()),
+    kpi(`${icon('warehouse')}Delivery companies`,fmt(ridersN),monthLabel()),
   );
   sec.append(k);
 
@@ -986,17 +1035,17 @@ function secTracking(d){
   /* delivery companies / riders */
   const riderRows=Object.entries(t.riderMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
   const g2=el('div','grid');g2.style.marginTop='16px';
-  const cRider=card('Delivery companies / riders','Shipments handled · '+monthLabel());
-  cRider.append(barList(riderRows.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
+  const cRider=card(`${icon('truck')}Delivery companies / riders`,'Shipments handled · '+monthLabel());
+  cRider.append(riderBarList(riderRows.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
   g2.append(cRider);sec.append(g2);
 
   /* rider -> city and rider -> district drilldown */
   const riders2=Object.keys(t.riderMonthly).sort((a,b)=>pick(t.riderMonthly[b])-pick(t.riderMonthly[a]));
   const gRC=el('div','grid cols-2');gRC.style.marginTop='16px';
   const cRC=card('','');
-  drillTable(cRC,'Delivery company → City','Which cities this delivery company serves most, by month.',t.riderCityMonthly,riders2,'City');
+  drillTable(cRC,`${icon('pin')}Delivery company → City`,'Which cities this delivery company serves most, by month.',t.riderCityMonthly,riders2,'City');
   const cRD=card('','');
-  drillTable(cRD,'Delivery company → District','Which districts this delivery company serves most, by month.',t.riderDistrictMonthly,riders2,'District');
+  drillTable(cRD,`${icon('pin')}Delivery company → District`,'Which districts this delivery company serves most, by month.',t.riderDistrictMonthly,riders2,'District');
   gRC.append(cRC,cRD);sec.append(gRC);
 
   return sec;
@@ -1033,7 +1082,7 @@ function drillTableMetric(container,title,hint,countMap,qtyMap,keys,rowLabel,def
 }
 function riderCityDistrictTable(container,list){
   const head=el('div','card-head');
-  head.innerHTML=`<div><h3>Delivery company × City × District</h3><div class="hint">Every route this delivery company has served, with order count and quantity · ${monthLabel()}. Type to filter.</div></div>`;
+  head.innerHTML=`<div><h3>${icon('pin')}Delivery company × City × District</h3><div class="hint">Every route this delivery company has served, with order count and quantity · ${monthLabel()}. Type to filter.</div></div>`;
   const search=el('input','search');search.type='search';search.placeholder='Search company, city or district…';
   head.append(search);container.append(head);
   const count=el('div','tbl-count');container.append(count);
@@ -1080,7 +1129,7 @@ function secTrackDetail(key){
   const retRate=totalShip?(returnedShip/totalShip*100):0;
   const k2=el('div','grid cols-4');k2.style.marginTop='16px';
   k2.append(
-    kpi('Delivery companies',fmt(ridersN),monthLabel()),
+    kpi(`${icon('warehouse')}Delivery companies`,fmt(ridersN),monthLabel()),
     kpi('Returned shipments',fmt(returnedShip),`${retRate.toFixed(1)}% of shipments`),
     kpi('Returned quantity',fmt(returnedQty),`units · ${monthLabel()}`),
     kpi('Avg qty / shipment',totalShip?(totalQty/totalShip).toFixed(2):'0','units'),
@@ -1138,17 +1187,17 @@ function secTrackDetail(key){
   /* delivery companies / riders — orders and quantity */
   const riderRowsQ=Object.entries(t.riderQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
   const g3=el('div','grid');g3.style.marginTop='16px';
-  const cRider=card('Delivery companies','Quantity shipped · '+monthLabel());
-  cRider.append(barList(riderRowsQ.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
+  const cRider=card(`${icon('truck')}Delivery companies`,'Quantity shipped · '+monthLabel());
+  cRider.append(riderBarList(riderRowsQ.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
   g3.append(cRider);sec.append(g3);
 
   /* rider -> city and rider -> district drilldown, with Orders/Quantity toggle */
   const riders2=Object.keys(t.riderQtyMonthly).sort((a,b)=>pick(t.riderQtyMonthly[b])-pick(t.riderQtyMonthly[a]));
   const gRC=el('div','grid cols-2');gRC.style.marginTop='16px';
   const cRC=card('','');
-  drillTableMetric(cRC,'Delivery company → City','Which cities this delivery company serves most.',t.riderCityMonthly,t.riderCityQtyMonthly,riders2,'City');
+  drillTableMetric(cRC,`${icon('pin')}Delivery company → City`,'Which cities this delivery company serves most.',t.riderCityMonthly,t.riderCityQtyMonthly,riders2,'City');
   const cRD=card('','');
-  drillTableMetric(cRD,'Delivery company → District','Which districts this delivery company serves most.',t.riderDistrictMonthly,t.riderDistrictQtyMonthly,riders2,'District');
+  drillTableMetric(cRD,`${icon('pin')}Delivery company → District`,'Which districts this delivery company serves most.',t.riderDistrictMonthly,t.riderDistrictQtyMonthly,riders2,'District');
   gRC.append(cRC,cRD);sec.append(gRC);
 
   /* full delivery-company × city × district detail table */
@@ -1166,7 +1215,7 @@ function secExactExtract(){
   if(raw.bis)brands.push({key:'bis',name:'Biseka',color:'var(--biseka)',data:raw.bis});
   if(raw.lovelab)brands.push({key:'lovelab',name:'Love&Lab',color:'var(--love)',data:raw.lovelab});
   const sec=el('section','section');sec.id='sec-trackings';
-  sec.append(sectionTitle('','Biseka, Love&Lab — Trackings',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
+  sec.append(sectionTitle('',`<span class="sec-icon">${icon('truck',20)}</span>Biseka, Love&Lab — Trackings`,`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
 
   const heroWrap=el('div');heroWrap.style.marginBottom='16px';
   heroWrap.innerHTML=`<div class="ee-hero"><span class="ee-badge">Trackings</span><span style="color:var(--ink-soft);font-size:13px">Every number on this tab comes straight from ${brands.map(b=>b.name).join(' and ')} tracking sheets — no order data involved.</span></div>`;
@@ -1232,7 +1281,7 @@ function secExactExtract(){
     const riderSet=new Set([...Object.keys(A.data.riderQtyMonthly),...Object.keys(B.data.riderQtyMonthly)]);
     const riderRows=[...riderSet].map(r=>({label:r,a:pick(A.data.riderQtyMonthly[r]||zerosLike(A.data.quantityMonthly)),b:pick(B.data.riderQtyMonthly[r]||zerosLike(B.data.quantityMonthly))}))
       .filter(r=>r.a>0||r.b>0).sort((x,y)=>(y.a+y.b)-(x.a+x.b)).slice(0,12);
-    const cRiders=card('Delivery companies, brand vs. brand','By quantity handled · '+monthLabel());
+    const cRiders=card(`${icon('truck')}Delivery companies, brand vs. brand`,'By quantity handled · '+monthLabel());
     cRiders.append(dualBarList(riderRows,A.color,B.color));cRiders.insertAdjacentHTML('beforeend',legendHtml);
     const gRiders=el('div','grid');gRiders.style.marginTop='16px';gRiders.append(cRiders);sec.append(gRiders);
   }else if(brands.length===1){
@@ -1245,31 +1294,23 @@ function secExactExtract(){
 /* ---------- courier profile cards ---------- */
 const COURIER_META={
   'Fardar Express':{
-    color:'var(--c-fardar)',tint:'var(--c-fardar-tint)',
+    color:'var(--c-fardar)',tint:'var(--c-fardar-tint)',icon:'truck',
     tag:'FDE Domestic (Pvt) Ltd · est. 2019, Sri Lankan–Chinese joint venture · 90+ branches islandwide',
-    photo:'https://loveandlab.com/wp-content/uploads/2024/10/Healthy-Glow-Face-Cream-100ml.jpg',
-    photoAlt:'Love&Lab Healthy Glow Face Cream',
     verdict:'The workhorse — biggest branch network of the four, and usually the default courier by sheer share.'
   },
   'City Pack':{
-    color:'var(--c-citypack)',tint:'var(--c-citypack-tint)',
+    color:'var(--c-citypack)',tint:'var(--c-citypack-tint)',icon:'warehouse',
     tag:'Citypak (IML Delivery Systems) · Hayleys Advantis Group · 30+ years, 45+ branches',
-    photo:'https://biseka.co/wp-content/uploads/2025/08/100m-1024x1024.jpg',
-    photoAlt:'Biseka Herbal Shampoo',
     verdict:'Backed by a corporate logistics group, with real strength up-country where the others barely register.'
   },
   'Flash Delivery':{
-    color:'var(--c-flash)',tint:'var(--c-flash-tint)',
+    color:'var(--c-flash)',tint:'var(--c-flash-tint)',icon:'bike',
     tag:'No public storefront or tracking site — booked directly, Colombo-focused rider service',
-    photo:'https://loveandlab.com/wp-content/uploads/2024/10/Brightening-Lip-Balm-300x300.jpg',
-    photoAlt:'Love&Lab Brightening Lip Balm',
     verdict:'The specialist — near-exclusively Colombo, reads like a tight same-city rider network rather than an islandwide courier.'
   },
   'Domex':{
-    color:'var(--c-domex)',tint:'var(--c-domex-tint)',
+    color:'var(--c-domex)',tint:'var(--c-domex-tint)',icon:'package',
     tag:'Domestic Express (Pvt) Ltd · 20+ years in Sri Lankan courier',
-    photo:'https://biseka.co/wp-content/uploads/2025/08/100i-1024x1024.jpg',
-    photoAlt:'Biseka Herbal Hair Oil',
     verdict:'Smallest volume of the group — worth watching if delivery and return rate are a priority.'
   }
 };
@@ -1287,7 +1328,7 @@ function secCourierProfiles(){
   if(raw.bis)sources.push(raw.bis);
   if(raw.lovelab)sources.push(raw.lovelab);
   const sec=el('section','section');sec.id='sec-courier-profiles';
-  sec.append(sectionTitle('','Courier Comparison',`Every delivery company across Biseka and Love&amp;Lab, merged into one profile each · ${monthLabel()}`));
+  sec.append(sectionTitle('',`<span class="sec-icon">${icon('truck',20)}</span>Courier Comparison`,`Every delivery company across Biseka and Love&amp;Lab, merged into one profile each · ${monthLabel()}`));
   if(!sources.length){sec.append(el('div','empty','No tracking sheets found in this file.'));return sec;}
 
   /* merge quantity (respects month filter), and all-time order/status totals, across brands */
@@ -1315,10 +1356,10 @@ function secCourierProfiles(){
   /* summary strip */
   const k=el('div','grid cols-4');
   k.append(
-    kpi('Delivery companies',fmt(names.length),monthLabel(),true),
-    kpi('Combined quantity',fmt(totalQty),`units · ${monthLabel()}`),
-    kpi('Leading courier',names[0],`${totalQty?Math.round(qty[names[0]]/totalQty*100):0}% of quantity`),
-    kpi('Orders tracked (all-time)',fmt(names.reduce((s,n)=>s+(orders[n]||0),0)),'across both brands'),
+    kpi(`${icon('warehouse')}Delivery companies`,fmt(names.length),monthLabel(),true),
+    kpi(`${icon('package')}Combined quantity`,fmt(totalQty),`units · ${monthLabel()}`),
+    kpi(`${icon('trophy')}Leading courier`,names[0],`${totalQty?Math.round(qty[names[0]]/totalQty*100):0}% of quantity`),
+    kpi(`${icon('clipboard')}Orders tracked (all-time)`,fmt(names.reduce((s,n)=>s+(orders[n]||0),0)),'across both brands'),
   );
   sec.append(k);
 
@@ -1338,26 +1379,26 @@ function secCourierProfiles(){
     card.style.borderTop=`4px solid ${meta.color}`;
     card.innerHTML=`
       <div class="courier-card-top">
-        <div class="courier-photo"><img src="${meta.photo}" alt="${esc(meta.photoAlt)}" loading="lazy"></div>
+        <div class="courier-photo" style="background:${meta.tint}"><span class="courier-icon" style="color:${meta.color}">${icon(meta.icon,40)}</span></div>
         <div class="courier-id">
-          <div class="courier-name">${esc(n)}</div>
+          <div class="courier-name"><span class="name-icon" style="color:${meta.color}">${icon(meta.icon,15)}</span>${esc(n)}</div>
           <div class="courier-tag">${esc(meta.tag)}</div>
         </div>
       </div>
       <div class="courier-stats">
-        <div class="courier-stat"><div class="cs-label">Quantity shipped</div><div class="cs-val" style="color:${meta.color}">${fmt(qty[n])}</div></div>
-        <div class="courier-stat"><div class="cs-label">Share of volume</div><div class="cs-val">${totalQty?Math.round(qty[n]/totalQty*100):0}%</div></div>
-        <div class="courier-stat"><div class="cs-label">Delivered rate</div><div class="cs-val">${delRate}%</div></div>
-        <div class="courier-stat"><div class="cs-label">Returned rate</div><div class="cs-val">${retRate}%</div></div>
+        <div class="courier-stat"><div class="cs-label">${icon('package')}Quantity shipped</div><div class="cs-val" style="color:${meta.color}">${fmt(qty[n])}</div></div>
+        <div class="courier-stat"><div class="cs-label">${icon('percent')}Share of volume</div><div class="cs-val">${totalQty?Math.round(qty[n]/totalQty*100):0}%</div></div>
+        <div class="courier-stat"><div class="cs-label">${icon('check')}Delivered rate</div><div class="cs-val">${delRate}%</div></div>
+        <div class="courier-stat"><div class="cs-label">${icon('rotateBack')}Returned rate</div><div class="cs-val">${retRate}%</div></div>
       </div>
       <div class="courier-stats" style="grid-template-columns:1fr;margin-top:0">
-        <div class="courier-stat"><div class="cs-label">Strongest area</div><div class="cs-val" style="font-size:13.5px">${topCity?esc(topCity[0])+' · '+fmt(topCity[1])+' units':'—'}</div></div>
+        <div class="courier-stat"><div class="cs-label">${icon('pin')}Strongest area</div><div class="cs-val" style="font-size:13.5px">${topCity?esc(topCity[0])+' · '+fmt(topCity[1])+' units':'—'}</div></div>
       </div>
-      <div class="courier-verdict">${esc(meta.verdict)}</div>`;
+      <div class="courier-verdict">${icon('info')}<span>${esc(meta.verdict)}</span></div>`;
     grid.append(card);
   });
   sec.append(grid);
-  sec.append(el('div','note','Delivered / Returned rates are all-time order-status totals per courier (not affected by the Month filter above); quantity and share respect the selected month. Product photos are pulled from loveandlab.com and biseka.co for visual flavour, not tied to a specific courier.'));
+  sec.append(el('div','note',`${icon('info',13)} Delivered / Returned rates are all-time order-status totals per courier (not affected by the Month filter above); quantity and share respect the selected month.`));
   return sec;
 }
 
