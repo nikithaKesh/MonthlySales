@@ -71,8 +71,7 @@ h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;margin:0;let
 .cols-2{grid-template-columns:1fr 1fr}
 .cols-4{grid-template-columns:repeat(4,1fr)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
-.card h3{font-size:16px;margin-bottom:2px;display:flex;align-items:center;gap:7px}
-.card h3 svg{flex:0 0 auto;width:15px;height:15px;color:var(--accent)}
+.card h3{font-size:16px;margin-bottom:2px}
 .card .hint{font-size:12px;color:var(--muted);margin-bottom:16px}
 .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
 .card-head h3{margin-bottom:2px}
@@ -122,8 +121,7 @@ td.tot{font-weight:700}
 
 /* misc */
 .pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--accent-tint);color:var(--accent)}
-.note{font-size:12px;color:var(--muted);background:var(--line-soft);border-radius:10px;padding:11px 14px;margin-top:8px;display:flex;gap:7px;align-items:flex-start}
-.note svg{flex:0 0 auto;margin-top:1px}
+.note{font-size:12px;color:var(--muted);background:var(--line-soft);border-radius:10px;padding:11px 14px;margin-top:8px}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-bottom:12px}
 .legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
 .empty{color:var(--muted);font-size:13px;padding:20px 0;text-align:center}
@@ -163,28 +161,15 @@ svg.chart.donut{overflow:visible}
 @media (max-width:720px){.courier-grid{grid-template-columns:1fr}}
 .courier-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
 .courier-card-top{display:flex;gap:14px;padding:18px 20px 0}
-.courier-photo{flex:0 0 84px;height:84px;border-radius:12px;overflow:hidden;background:var(--paper);border:1px solid var(--line-soft);display:flex;align-items:center;justify-content:center}
-.courier-photo img{width:100%;height:100%;object-fit:cover;display:block}
-.courier-icon{display:flex;align-items:center;justify-content:center}
-.courier-icon svg{width:40px;height:40px}
+.courier-photo{flex:0 0 84px;height:84px;border-radius:12px;overflow:hidden;border:1px solid var(--line-soft);display:flex;align-items:center;justify-content:center}
 .courier-id{flex:1;min-width:0}
-.courier-name{font-family:"Source Serif 4",serif;font-size:17px;font-weight:600;line-height:1.2;display:flex;align-items:center;gap:7px}
-.courier-name .name-icon{flex:0 0 auto;display:inline-flex}
-.courier-name .name-icon svg{width:15px;height:15px}
+.courier-name{font-family:"Source Serif 4",serif;font-size:17px;font-weight:600;line-height:1.2}
 .courier-tag{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.4}
 .courier-stats{margin:16px 20px 6px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .courier-stat{background:var(--paper);border-radius:10px;padding:9px 11px}
-.courier-stat .cs-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:5px}
-.courier-stat .cs-label svg{width:12px;height:12px;flex:0 0 auto}
+.courier-stat .cs-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .courier-stat .cs-val{font-family:"Source Serif 4",serif;font-size:16px;font-weight:600;margin-top:3px}
-.courier-verdict{margin:10px 20px 20px;font-size:12px;color:var(--ink-soft);border-left:2px solid var(--line);padding-left:10px;display:flex;gap:8px;align-items:flex-start}
-.courier-verdict svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px;color:var(--muted)}
-.sec-icon{display:inline-flex;vertical-align:-4px;margin-right:8px;color:var(--accent)}
-.sec-icon svg{width:20px;height:20px}
-.k-label .stat-icon,.k-label{display:inline-flex;align-items:center;gap:6px}
-.k-label svg{width:12px;height:12px;flex:0 0 auto}
-.bar-row .lab .rider-icon{display:inline-flex;margin-right:6px;vertical-align:-2px;color:var(--muted)}
-.bar-row .lab .rider-icon svg{width:13px;height:13px}
+.courier-verdict{margin:10px 20px 20px;font-size:12px;color:var(--ink-soft);border-left:2px solid var(--line);padding-left:10px}
 
 /* ---- brand hero banner ---- */
 .brand-hero{display:flex;gap:18px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin-top:14px;box-shadow:var(--shadow)}
@@ -604,41 +589,6 @@ function barList(rows,{lo=false,max=null}={}){
   return wrap;
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function riderBarList(rows){
-  if(!rows.length) return `<div class="empty">No sales in ${monthLabel()}.</div>`;
-  const mx=Math.max(1,...rows.map(r=>r.value));
-  const wrap=el('div','bars');
-  rows.forEach((r,i)=>{
-    const row=el('div','bar-row');
-    const meta=(typeof COURIER_META!=='undefined')?COURIER_META[typeof normRiderName==='function'?normRiderName(r.label):r.label]:null;
-    const ic=`<span class="rider-icon" style="${meta?`color:${meta.color}`:''}">${icon(meta?meta.icon:'truck',13)}</span>`;
-    row.innerHTML=`<div class="lab" title="${esc(r.label)}">${r.rank?`<span class="rank">${r.rank}</span>`:''}${ic}${esc(r.label)}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:0"></div></div>
-      <div class="val">${fmt(r.value)}</div>`;
-    wrap.appendChild(row);
-    requestAnimationFrame(()=>row.querySelector('.bar-fill').style.width=(r.value/mx*100)+'%');
-  });
-  return wrap;
-}
-
-/* ---------- icon library (inline SVG, no external images) ---------- */
-const ICON_PATHS={
-  truck:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
-  bike:'<circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm-3 11.5V14l-3-3 4-3 2 3h2"/>',
-  warehouse:'<path d="M22 8.35V20a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.35a2 2 0 0 1 1.15-1.81l8-4a2 2 0 0 1 1.7 0l8 4A2 2 0 0 1 22 8.35Z"/><path d="M6 17h.01M18 17h.01"/>',
-  package:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/>',
-  percent:'<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
-  check:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
-  rotateBack:'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
-  pin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/>',
-  trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M5 4H3v2a4 4 0 0 0 4 4M19 4h2v2a4 4 0 0 1-4 4"/>',
-  clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="M9 12h6M9 16h6"/>',
-  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
-};
-function icon(name,size){
-  const p=ICON_PATHS[name];if(!p)return'';
-  return `<svg viewBox="0 0 24 24" width="${size||14}" height="${size||14}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-}
 
 /* ---------- sections ---------- */
 const SECTIONS=[
@@ -788,32 +738,61 @@ function secChannelSplit(d){
   return sec;
 }
 
-/* ---- product photo matching (best-effort, real product photos from the brand sites) ---- */
-const BIS_IMG_BASE='https://biseka.co/wp-content/uploads/2025/08/';
-const LL_IMG_BASE='https://loveandlab.com/wp-content/uploads/';
-const BISEKA_PRODUCT_IMAGES=[
-  {test:/hair growth oil/i, url:BIS_IMG_BASE+'100k-1024x1024.jpg'},
-  {test:/hair oil/i, url:BIS_IMG_BASE+'100i-1024x1024.jpg'},
-  {test:/sulfate.*shampoo|moisturis(?:ing|ng) shampoo|moisturiz(?:ing|ng) shampoo/i, url:BIS_IMG_BASE+'100l-1024x1024.jpg'},
-  {test:/shampoo/i, url:BIS_IMG_BASE+'100m-1024x1024.jpg'},
-  {test:/hydrating leave|leave.?in conditioner|leave.?on conditioner/i, url:BIS_IMG_BASE+'100c-1024x1024.jpg'},
-  {test:/hair conditioner/i, url:BIS_IMG_BASE+'100f-1024x1024.jpg'},
-  {test:/curl defining|repair cream/i, url:BIS_IMG_BASE+'100e-1024x1024.jpg'},
-  {test:/bhringraj/i, url:BIS_IMG_BASE+'100g-1024x1024.jpg'},
-  {test:/avocado/i, url:BIS_IMG_BASE+'100b-1024x1024.jpg'},
-  {test:/foot cream/i, url:BIS_IMG_BASE+'Foot-Cream-.jpeg'},
-  {test:/shower gel/i, url:BIS_IMG_BASE+'100j-1024x1024.jpg'},
-];
-const LOVELAB_PRODUCT_IMAGES=[
-  {test:/face cream/i, url:LL_IMG_BASE+'2024/10/Healthy-Glow-Face-Cream-100ml.jpg'},
-  {test:/face serum/i, url:LL_IMG_BASE+'2024/10/Healthy-Glow-Face-Serum-40ml-300x300.jpg'},
-  {test:/lip balm/i, url:LL_IMG_BASE+'2024/10/Brightening-Lip-Balm-300x300.jpg'},
-  {test:/face wash/i, url:LL_IMG_BASE+'2025/05/A12-300x300.jpg'},
-];
+/* ---- product photos — matched automatically from the "Product Link" column on the products tab ----
+   Each product link below has been resolved to that page's real photo (its og:image), so thumbnails are
+   tied to the actual SKU the spreadsheet points at instead of a guess based on the product's name. When a
+   size variant shares a Product Link with its siblings (e.g. Hair Oil 40/100/200/300/750ml), they all pick
+   up the same photo automatically — no per-size entries needed. Add a link below (and re-run) to cover more. */
+const PRODUCT_LINK_IMAGES={
+  'https://biseka.co/product/biseka-herbal-hair-oil/':'https://biseka.co/wp-content/uploads/2025/08/100i-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-shampoo/':'https://biseka.co/wp-content/uploads/2025/08/100m-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-hair-conditioner/':'https://biseka.co/wp-content/uploads/2025/08/100f-1024x1024.jpg',
+  'https://biseka.co/product/hair-growth-oil-scalp-hair-treatment/':'https://biseka.co/wp-content/uploads/2025/08/100k-1024x1024.jpg',
+  'https://biseka.co/product/sulfate-free-moisturising-shampoo/':'https://biseka.co/wp-content/uploads/2025/08/100l-1024x1024.jpg',
+  'https://biseka.co/product/hydrating-leave-in-conditioner/':'https://biseka.co/wp-content/uploads/2025/08/100c-1024x1024.jpg',
+  'https://biseka.co/product/curl-defining-repair-cream/':'https://biseka.co/wp-content/uploads/2025/08/100e-1024x1024.jpg',
+  'https://biseka.co/product/bhringraj-hair-moisturiser/':'https://biseka.co/wp-content/uploads/2025/08/100g-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-face-wash/':'https://biseka.co/wp-content/uploads/2025/08/100h-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-fairness-lotion/':'https://biseka.co/wp-content/uploads/2025/08/100d-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-acne-treatment/':'https://biseka.co/wp-content/uploads/2025/08/M-1024x1024.jpg',
+  'https://biseka.co/product/jasmine-night-cream-50g/':'https://biseka.co/wp-content/uploads/2025/08/2-1024x1024.jpg',
+  'https://biseka.co/product/hibiscus-day-cream-50g/':'https://biseka.co/wp-content/uploads/2025/08/1-1-1024x1024.jpg',
+  'https://biseka.co/product/golden-face-serum/':'https://biseka.co/wp-content/uploads/2025/08/6-1024x1024.jpg',
+  'https://biseka.co/product/avocado-detan-body-lotion/':'https://biseka.co/wp-content/uploads/2025/08/100b-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-under-eye-cream/':'https://biseka.co/wp-content/uploads/2025/08/3-1024x1024.jpg',
+  'https://biseka.co/product/coco-berry-lip-butter-20g/':'https://biseka.co/wp-content/uploads/2025/08/7-1024x1024.jpg',
+  'https://biseka.co/product/biseka-herbal-shower-gel/':'https://biseka.co/wp-content/uploads/2025/08/100j-1024x1024.jpg',
+  'https://biseka.co/product/intensive-hair-repair-masque-anti-hair-fall-treatment/':'https://biseka.co/wp-content/uploads/2025/08/IHR-250.jpg',
+  'https://biseka.co/product/biseka-oil-pulling-mouth-wash/':'https://biseka.co/wp-content/uploads/2025/08/100a-1024x1024.jpg',
+  'https://biseka.co/product/moringa-venivel-face-scrub/':'https://biseka.co/wp-content/uploads/2026/06/White-1024x1024.jpg',
+  'https://loveandlab.com/product/healthy-fairness-body-lotion-300ml/':'https://loveandlab.com/wp-content/uploads/2024/10/Herbal-Fairness-Body-Lotion-300ml.jpg',
+  'https://loveandlab.com/product/healthy-glow-face-cream-100ml/':'https://loveandlab.com/wp-content/uploads/2024/10/Healthy-Glow-Face-Cream-100ml.jpg',
+  'https://loveandlab.com/product/healthy-glow-face-serum-40ml/':'https://loveandlab.com/wp-content/uploads/2024/10/Healthy-Glow-Face-Serum-40ml-300x300.jpg',
+  'https://loveandlab.com/product/volume-booster-hair-growth-cream-250g/':'https://loveandlab.com/wp-content/uploads/2024/10/Volume-Booster-Hair-Growth-Cream-250g-scaled.jpg',
+  'https://loveandlab.com/product/brightening-lip-balm/':'https://loveandlab.com/wp-content/uploads/2024/10/Brightening-Lip-Balm-300x300.jpg',
+  'https://loveandlab.com/product/healthy-glow-face-wash-200ml/':'https://loveandlab.com/wp-content/uploads/2025/05/A12-300x300.jpg',
+  'https://loveandlab.com/product/thick-grow-200ml/':'https://loveandlab.com/wp-content/uploads/2025/08/1sq.jpg',
+  'https://loveandlab.com/product/bright-and-smooth-underarm-care/':'https://loveandlab.com/wp-content/uploads/2026/06/4-819x1024.png',
+  'https://loveandlab.com/product/daily-sun-shield-100g/':'https://loveandlab.com/wp-content/uploads/2026/06/ChatGPT-Image-Jun-17-2026-02_51_52-PM.png',
+  'https://loveandlab.com/product/healthy-and-smooth-foot-cream-250g/':'https://loveandlab.com/wp-content/uploads/2026/06/2-819x1024.png',
+};
+function buildProductImageMap(code2item,code2link,name2assign){
+  const byName={};
+  for(const code in code2item){
+    const link=code2link[code], img=link&&PRODUCT_LINK_IMAGES[link.trim()];
+    if(img)byName[code2item[code]]=img;
+  }
+  /* an "Assign Name" groups several size variants under one label in the Assigned view —
+     reuse whichever sibling variant we already resolved a photo for. */
+  for(const itemName in name2assign){
+    const assign=name2assign[itemName];
+    if(byName[itemName]&&!byName[assign])byName[assign]=byName[itemName];
+  }
+  return byName;
+}
 function findProductImage(name){
-  const dict=STATE.brand==='Love&Lab'?LOVELAB_PRODUCT_IMAGES:BISEKA_PRODUCT_IMAGES;
-  for(const {test,url} of dict) if(test.test(name)) return url;
-  return null;
+  const map=DATA&&DATA.productImages;
+  return (map&&map[name])||null;
 }
 function productThumb(name){
   const url=findProductImage(name);
@@ -969,7 +948,7 @@ function secPay(d){
 function secTracking(d){
   const t=d.tracking;
   const sec=el('section','section');sec.id='sec-tracking';
-  sec.append(sectionTitle('',`<span class="sec-icon">${icon('truck',20)}</span>Delivery Tracking`,`Courier shipments for ${STATE.brand} — status, cities, districts & delivery companies · ${monthLabel()}`));
+  sec.append(sectionTitle('','Delivery Tracking',`Courier shipments for ${STATE.brand} — status, cities, districts & delivery companies · ${monthLabel()}`));
 
   /* KPI strip */
   const totalShip=pick(t.totalMonthly);
@@ -981,7 +960,7 @@ function secTracking(d){
     kpi('Shipments',fmt(totalShip),monthLabel(),true),
     kpi('Cities reached',fmt(citiesN),monthLabel()),
     kpi('Districts reached',fmt(distN),monthLabel()),
-    kpi(`${icon('warehouse')}Delivery companies`,fmt(ridersN),monthLabel()),
+    kpi('Delivery companies',fmt(ridersN),monthLabel()),
   );
   sec.append(k);
 
@@ -1035,17 +1014,17 @@ function secTracking(d){
   /* delivery companies / riders */
   const riderRows=Object.entries(t.riderMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
   const g2=el('div','grid');g2.style.marginTop='16px';
-  const cRider=card(`${icon('truck')}Delivery companies / riders`,'Shipments handled · '+monthLabel());
-  cRider.append(riderBarList(riderRows.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
+  const cRider=card('Delivery companies / riders','Shipments handled · '+monthLabel());
+  cRider.append(barList(riderRows.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
   g2.append(cRider);sec.append(g2);
 
   /* rider -> city and rider -> district drilldown */
   const riders2=Object.keys(t.riderMonthly).sort((a,b)=>pick(t.riderMonthly[b])-pick(t.riderMonthly[a]));
   const gRC=el('div','grid cols-2');gRC.style.marginTop='16px';
   const cRC=card('','');
-  drillTable(cRC,`${icon('pin')}Delivery company → City`,'Which cities this delivery company serves most, by month.',t.riderCityMonthly,riders2,'City');
+  drillTable(cRC,'Delivery company → City','Which cities this delivery company serves most, by month.',t.riderCityMonthly,riders2,'City');
   const cRD=card('','');
-  drillTable(cRD,`${icon('pin')}Delivery company → District`,'Which districts this delivery company serves most, by month.',t.riderDistrictMonthly,riders2,'District');
+  drillTable(cRD,'Delivery company → District','Which districts this delivery company serves most, by month.',t.riderDistrictMonthly,riders2,'District');
   gRC.append(cRC,cRD);sec.append(gRC);
 
   return sec;
@@ -1082,7 +1061,7 @@ function drillTableMetric(container,title,hint,countMap,qtyMap,keys,rowLabel,def
 }
 function riderCityDistrictTable(container,list){
   const head=el('div','card-head');
-  head.innerHTML=`<div><h3>${icon('pin')}Delivery company × City × District</h3><div class="hint">Every route this delivery company has served, with order count and quantity · ${monthLabel()}. Type to filter.</div></div>`;
+  head.innerHTML=`<div><h3>Delivery company × City × District</h3><div class="hint">Every route this delivery company has served, with order count and quantity · ${monthLabel()}. Type to filter.</div></div>`;
   const search=el('input','search');search.type='search';search.placeholder='Search company, city or district…';
   head.append(search);container.append(head);
   const count=el('div','tbl-count');container.append(count);
@@ -1129,7 +1108,7 @@ function secTrackDetail(key){
   const retRate=totalShip?(returnedShip/totalShip*100):0;
   const k2=el('div','grid cols-4');k2.style.marginTop='16px';
   k2.append(
-    kpi(`${icon('warehouse')}Delivery companies`,fmt(ridersN),monthLabel()),
+    kpi('Delivery companies',fmt(ridersN),monthLabel()),
     kpi('Returned shipments',fmt(returnedShip),`${retRate.toFixed(1)}% of shipments`),
     kpi('Returned quantity',fmt(returnedQty),`units · ${monthLabel()}`),
     kpi('Avg qty / shipment',totalShip?(totalQty/totalShip).toFixed(2):'0','units'),
@@ -1187,17 +1166,17 @@ function secTrackDetail(key){
   /* delivery companies / riders — orders and quantity */
   const riderRowsQ=Object.entries(t.riderQtyMonthly).map(([n,v])=>({label:n,value:pick(v)})).filter(r=>r.value>0).sort((a,b)=>b.value-a.value);
   const g3=el('div','grid');g3.style.marginTop='16px';
-  const cRider=card(`${icon('truck')}Delivery companies`,'Quantity shipped · '+monthLabel());
-  cRider.append(riderBarList(riderRowsQ.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
+  const cRider=card('Delivery companies','Quantity shipped · '+monthLabel());
+  cRider.append(barList(riderRowsQ.slice(0,15).map((r,i)=>({...r,rank:i+1}))));
   g3.append(cRider);sec.append(g3);
 
   /* rider -> city and rider -> district drilldown, with Orders/Quantity toggle */
   const riders2=Object.keys(t.riderQtyMonthly).sort((a,b)=>pick(t.riderQtyMonthly[b])-pick(t.riderQtyMonthly[a]));
   const gRC=el('div','grid cols-2');gRC.style.marginTop='16px';
   const cRC=card('','');
-  drillTableMetric(cRC,`${icon('pin')}Delivery company → City`,'Which cities this delivery company serves most.',t.riderCityMonthly,t.riderCityQtyMonthly,riders2,'City');
+  drillTableMetric(cRC,'Delivery company → City','Which cities this delivery company serves most.',t.riderCityMonthly,t.riderCityQtyMonthly,riders2,'City');
   const cRD=card('','');
-  drillTableMetric(cRD,`${icon('pin')}Delivery company → District`,'Which districts this delivery company serves most.',t.riderDistrictMonthly,t.riderDistrictQtyMonthly,riders2,'District');
+  drillTableMetric(cRD,'Delivery company → District','Which districts this delivery company serves most.',t.riderDistrictMonthly,t.riderDistrictQtyMonthly,riders2,'District');
   gRC.append(cRC,cRD);sec.append(gRC);
 
   /* full delivery-company × city × district detail table */
@@ -1215,7 +1194,7 @@ function secExactExtract(){
   if(raw.bis)brands.push({key:'bis',name:'Biseka',color:'var(--biseka)',data:raw.bis});
   if(raw.lovelab)brands.push({key:'lovelab',name:'Love&Lab',color:'var(--love)',data:raw.lovelab});
   const sec=el('section','section');sec.id='sec-trackings';
-  sec.append(sectionTitle('',`<span class="sec-icon">${icon('truck',20)}</span>Biseka, Love&Lab — Trackings`,`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
+  sec.append(sectionTitle('','Biseka, Love&Lab — Trackings',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
 
   const heroWrap=el('div');heroWrap.style.marginBottom='16px';
   heroWrap.innerHTML=`<div class="ee-hero"><span class="ee-badge">Trackings</span><span style="color:var(--ink-soft);font-size:13px">Every number on this tab comes straight from ${brands.map(b=>b.name).join(' and ')} tracking sheets — no order data involved.</span></div>`;
@@ -1281,7 +1260,7 @@ function secExactExtract(){
     const riderSet=new Set([...Object.keys(A.data.riderQtyMonthly),...Object.keys(B.data.riderQtyMonthly)]);
     const riderRows=[...riderSet].map(r=>({label:r,a:pick(A.data.riderQtyMonthly[r]||zerosLike(A.data.quantityMonthly)),b:pick(B.data.riderQtyMonthly[r]||zerosLike(B.data.quantityMonthly))}))
       .filter(r=>r.a>0||r.b>0).sort((x,y)=>(y.a+y.b)-(x.a+x.b)).slice(0,12);
-    const cRiders=card(`${icon('truck')}Delivery companies, brand vs. brand`,'By quantity handled · '+monthLabel());
+    const cRiders=card('Delivery companies, brand vs. brand','By quantity handled · '+monthLabel());
     cRiders.append(dualBarList(riderRows,A.color,B.color));cRiders.insertAdjacentHTML('beforeend',legendHtml);
     const gRiders=el('div','grid');gRiders.style.marginTop='16px';gRiders.append(cRiders);sec.append(gRiders);
   }else if(brands.length===1){
@@ -1294,26 +1273,40 @@ function secExactExtract(){
 /* ---------- courier profile cards ---------- */
 const COURIER_META={
   'Fardar Express':{
-    color:'var(--c-fardar)',tint:'var(--c-fardar-tint)',icon:'truck',
+    color:'var(--c-fardar)',tint:'var(--c-fardar-tint)',
     tag:'FDE Domestic (Pvt) Ltd · est. 2019, Sri Lankan–Chinese joint venture · 90+ branches islandwide',
+    icon:'truck',
     verdict:'The workhorse — biggest branch network of the four, and usually the default courier by sheer share.'
   },
   'City Pack':{
-    color:'var(--c-citypack)',tint:'var(--c-citypack-tint)',icon:'warehouse',
+    color:'var(--c-citypack)',tint:'var(--c-citypack-tint)',
     tag:'Citypak (IML Delivery Systems) · Hayleys Advantis Group · 30+ years, 45+ branches',
+    icon:'building',
     verdict:'Backed by a corporate logistics group, with real strength up-country where the others barely register.'
   },
   'Flash Delivery':{
-    color:'var(--c-flash)',tint:'var(--c-flash-tint)',icon:'bike',
+    color:'var(--c-flash)',tint:'var(--c-flash-tint)',
     tag:'No public storefront or tracking site — booked directly, Colombo-focused rider service',
+    icon:'bike',
     verdict:'The specialist — near-exclusively Colombo, reads like a tight same-city rider network rather than an islandwide courier.'
   },
   'Domex':{
-    color:'var(--c-domex)',tint:'var(--c-domex-tint)',icon:'package',
+    color:'var(--c-domex)',tint:'var(--c-domex-tint)',
     tag:'Domestic Express (Pvt) Ltd · 20+ years in Sri Lankan courier',
+    icon:'package',
     verdict:'Smallest volume of the group — worth watching if delivery and return rate are a priority.'
   }
 };
+/* Simple line-icon set for couriers — no photos, since a delivery company isn't a product photo. */
+const COURIER_ICONS={
+  truck:'<rect x="1" y="3" width="14" height="12"/><polygon points="15 8 20 8 23 11 23 16 15 16 15 8"/><circle cx="5.5" cy="18.5" r="2.2"/><circle cx="18.5" cy="18.5" r="2.2"/>',
+  building:'<rect x="4" y="2" width="12" height="20"/><line x1="4" y1="9" x2="16" y2="9"/><line x1="4" y1="14" x2="16" y2="14"/><line x1="8" y1="22" x2="8" y2="18"/><path d="M16 22h4V11l-4-3"/>',
+  bike:'<circle cx="6" cy="17" r="3.2"/><circle cx="18" cy="17" r="3.2"/><path d="M6 17l4-9h5l3 5"/><path d="M10 8h3"/><path d="M15 13l3 4"/>',
+  package:'<path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><line x1="12" y1="22" x2="12" y2="12"/>'
+};
+function courierIcon(meta){
+  return `<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="${meta.color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${COURIER_ICONS[meta.icon]||COURIER_ICONS.truck}</svg>`;
+}
 function normRiderName(n){
   const k=String(n).trim();
   if(/^city\s*pack$/i.test(k))return 'City Pack';
@@ -1328,7 +1321,7 @@ function secCourierProfiles(){
   if(raw.bis)sources.push(raw.bis);
   if(raw.lovelab)sources.push(raw.lovelab);
   const sec=el('section','section');sec.id='sec-courier-profiles';
-  sec.append(sectionTitle('',`<span class="sec-icon">${icon('truck',20)}</span>Courier Comparison`,`Every delivery company across Biseka and Love&amp;Lab, merged into one profile each · ${monthLabel()}`));
+  sec.append(sectionTitle('','Courier Comparison',`Every delivery company across Biseka and Love&amp;Lab, merged into one profile each · ${monthLabel()}`));
   if(!sources.length){sec.append(el('div','empty','No tracking sheets found in this file.'));return sec;}
 
   /* merge quantity (respects month filter), and all-time order/status totals, across brands */
@@ -1356,10 +1349,10 @@ function secCourierProfiles(){
   /* summary strip */
   const k=el('div','grid cols-4');
   k.append(
-    kpi(`${icon('warehouse')}Delivery companies`,fmt(names.length),monthLabel(),true),
-    kpi(`${icon('package')}Combined quantity`,fmt(totalQty),`units · ${monthLabel()}`),
-    kpi(`${icon('trophy')}Leading courier`,names[0],`${totalQty?Math.round(qty[names[0]]/totalQty*100):0}% of quantity`),
-    kpi(`${icon('clipboard')}Orders tracked (all-time)`,fmt(names.reduce((s,n)=>s+(orders[n]||0),0)),'across both brands'),
+    kpi('Delivery companies',fmt(names.length),monthLabel(),true),
+    kpi('Combined quantity',fmt(totalQty),`units · ${monthLabel()}`),
+    kpi('Leading courier',names[0],`${totalQty?Math.round(qty[names[0]]/totalQty*100):0}% of quantity`),
+    kpi('Orders tracked (all-time)',fmt(names.reduce((s,n)=>s+(orders[n]||0),0)),'across both brands'),
   );
   sec.append(k);
 
@@ -1379,26 +1372,26 @@ function secCourierProfiles(){
     card.style.borderTop=`4px solid ${meta.color}`;
     card.innerHTML=`
       <div class="courier-card-top">
-        <div class="courier-photo" style="background:${meta.tint}"><span class="courier-icon" style="color:${meta.color}">${icon(meta.icon,40)}</span></div>
+        <div class="courier-photo" style="background:${meta.tint}">${courierIcon(meta)}</div>
         <div class="courier-id">
-          <div class="courier-name"><span class="name-icon" style="color:${meta.color}">${icon(meta.icon,15)}</span>${esc(n)}</div>
+          <div class="courier-name">${esc(n)}</div>
           <div class="courier-tag">${esc(meta.tag)}</div>
         </div>
       </div>
       <div class="courier-stats">
-        <div class="courier-stat"><div class="cs-label">${icon('package')}Quantity shipped</div><div class="cs-val" style="color:${meta.color}">${fmt(qty[n])}</div></div>
-        <div class="courier-stat"><div class="cs-label">${icon('percent')}Share of volume</div><div class="cs-val">${totalQty?Math.round(qty[n]/totalQty*100):0}%</div></div>
-        <div class="courier-stat"><div class="cs-label">${icon('check')}Delivered rate</div><div class="cs-val">${delRate}%</div></div>
-        <div class="courier-stat"><div class="cs-label">${icon('rotateBack')}Returned rate</div><div class="cs-val">${retRate}%</div></div>
+        <div class="courier-stat"><div class="cs-label">Quantity shipped</div><div class="cs-val" style="color:${meta.color}">${fmt(qty[n])}</div></div>
+        <div class="courier-stat"><div class="cs-label">Share of volume</div><div class="cs-val">${totalQty?Math.round(qty[n]/totalQty*100):0}%</div></div>
+        <div class="courier-stat"><div class="cs-label">Delivered rate</div><div class="cs-val">${delRate}%</div></div>
+        <div class="courier-stat"><div class="cs-label">Returned rate</div><div class="cs-val">${retRate}%</div></div>
       </div>
       <div class="courier-stats" style="grid-template-columns:1fr;margin-top:0">
-        <div class="courier-stat"><div class="cs-label">${icon('pin')}Strongest area</div><div class="cs-val" style="font-size:13.5px">${topCity?esc(topCity[0])+' · '+fmt(topCity[1])+' units':'—'}</div></div>
+        <div class="courier-stat"><div class="cs-label">Strongest area</div><div class="cs-val" style="font-size:13.5px">${topCity?esc(topCity[0])+' · '+fmt(topCity[1])+' units':'—'}</div></div>
       </div>
-      <div class="courier-verdict">${icon('info')}<span>${esc(meta.verdict)}</span></div>`;
+      <div class="courier-verdict">${esc(meta.verdict)}</div>`;
     grid.append(card);
   });
   sec.append(grid);
-  sec.append(el('div','note',`${icon('info',13)} Delivered / Returned rates are all-time order-status totals per courier (not affected by the Month filter above); quantity and share respect the selected month.`));
+  sec.append(el('div','note','Delivered / Returned rates are all-time order-status totals per courier (not affected by the Month filter above); quantity and share respect the selected month.'));
   return sec;
 }
 
@@ -1544,16 +1537,18 @@ const headerMap=rows=>(rows[0]||[]).map(x=>x==null?'':String(x).trim());
 
 function buildDATA(wb){
   const prows=sheet(wb,'products'); if(!prows)throw new Error("missing a 'products' tab.");
-  const pH=headerMap(prows), ci=pH.indexOf('ITEM Code'), ii=pH.indexOf('Item');
+  const pH=headerMap(prows), ci=pH.indexOf('ITEM Code'), ii=pH.indexOf('Item'), li=pH.indexOf('Product Link');
   if(ci<0||ii<0)throw new Error("the 'products' tab needs 'ITEM Code' and 'Item' columns.");
-  const code2item={}, productCodes=new Set();
+  const code2item={}, productCodes=new Set(), code2link={};
   for(let r=1;r<prows.length;r++){const row=prows[r];if(!row||row[ci]==null||String(row[ci]).trim()==='')continue;
-    const c=String(row[ci]).trim();code2item[c]=String(row[ii]).trim();productCodes.add(c);}
+    const c=String(row[ci]).trim();code2item[c]=String(row[ii]).trim();productCodes.add(c);
+    if(li>=0&&row[li]!=null&&String(row[li]).trim()!=='')code2link[c]=String(row[li]).trim();}
   const arows=sheet(wb,'assigned'), name2assign={};
   if(arows){const aH=headerMap(arows),ai=aH.indexOf('Item'),aa=aH.indexOf('Assign Name');
     if(ai>=0&&aa>=0)for(let r=1;r<arows.length;r++){const row=arows[r];if(!row||row[ai]==null||String(row[ai]).trim()==='')continue;
       name2assign[String(row[ai]).trim()]=String(row[aa]).trim();}}
   const assignOf=item=>name2assign[String(item).trim()]||String(item);
+  const productImageByName=buildProductImageMap(code2item,code2link,name2assign);
 
   const TABS={online:sheet(wb,'biseka_online'),shop:sheet(wb,'biseka_shop'),love:sheet(wb,'lovelab')};
   const TRACK={bis:sheet(wb,'BIS-Tracking'),lovelab:sheet(wb,'Lovelab-Tracking')};
@@ -1721,6 +1716,7 @@ function buildDATA(wb){
   const chipOrders=(BO?BO.totalOrders:0)+(BS?BS.totalOrders:0)+(LL?LL.totalOrders:0);
   return {meta:{months:labels,monthKeys,range,orders:chipOrders,lastUpdated:new Date().toISOString().slice(0,10),
     note:'Payment methods merged (Koko; Mintpay). Online, Shop and Online + Shop show size-level products; Assigned consolidates sizes into assign names. 12 fragrance SKUs removed from Biseka. All figures computed in your browser from the loaded file.'},brands,
+    productImages:productImageByName,
     trackingRaw:{bis:BIS,lovelab:LLT}};
 }
 
