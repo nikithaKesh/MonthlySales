@@ -600,10 +600,10 @@ const SECTIONS=[
   {id:'shops',   name:'Shops', group:'Sales performance', build:secShops, when:d=>d.shopMonthly},
   {id:'payments',name:'Payments & Status', group:'Sales performance', build:secPay, when:d=>d.paymentMonthly},
   {id:'geo',     name:'Cities & Districts', group:'Geography & logistics', build:secGeo, when:d=>d.cityMonthly},
-  {id:'bis-tracking',name:'BIS Tracking', group:'Geography & logistics', build:()=>secTrackDetail('bis'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
-  {id:'lovelab-tracking',name:'Lovelab Tracking', group:'Geography & logistics', build:()=>secTrackDetail('lovelab'), when:()=>DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
-  {id:'courier-profiles',name:'Courier Comparison', group:'Geography & logistics', build:secCourierProfiles, when:()=>DATA&&DATA.trackingRaw&&(DATA.trackingRaw.bis||DATA.trackingRaw.lovelab)},
   {id:'Trackings',name:'Combined Trackings', group:'Cross-brand', build:secExactExtract, when:d=>d.isExactExtract},
+  {id:'bis-tracking',name:'BIS Tracking', group:'Cross-brand', build:()=>secTrackDetail('bis'), when:d=>d.isExactExtract&&DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
+  {id:'lovelab-tracking',name:'Lovelab Tracking', group:'Cross-brand', build:()=>secTrackDetail('lovelab'), when:d=>d.isExactExtract&&DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
+  {id:'courier-profiles',name:'Courier Comparison', group:'Cross-brand', build:secCourierProfiles, when:d=>d.isExactExtract&&DATA&&DATA.trackingRaw&&(DATA.trackingRaw.bis||DATA.trackingRaw.lovelab)},
 ];
 
 const BRAND_HERO={
@@ -1193,7 +1193,7 @@ function secExactExtract(){
   const brands=[];
   if(raw.bis)brands.push({key:'bis',name:'Biseka',color:'var(--biseka)',data:raw.bis});
   if(raw.lovelab)brands.push({key:'lovelab',name:'Love&Lab',color:'var(--love)',data:raw.lovelab});
-  const sec=el('section','section');sec.id='sec-trackings';
+  const sec=el('section','section');sec.id='sec-Trackings';
   sec.append(sectionTitle('','Biseka, Love&Lab — Trackings',`Combined courier delivery data across both brands, pulled directly from the tracking sheets · ${monthLabel()}`));
 
   const heroWrap=el('div');heroWrap.style.marginBottom='16px';
