@@ -282,7 +282,7 @@ svg.chart.donut{overflow:visible}
 .drop{background:var(--surface);border:2px dashed var(--line);border-radius:18px;padding:46px 28px;text-align:center;box-shadow:var(--shadow);transition:.18s}
 .drop.hot{border-color:var(--accent);background:var(--accent-tint)}
 .drop.busy{opacity:.55;pointer-events:none}
-.drop .icon{font-size:34px;margin-bottom:8px}
+.drop .icon{margin-bottom:8px;display:flex;justify-content:center}
 .drop h2{font-size:20px;margin-bottom:8px}
 .drop p{color:var(--ink-soft);font-size:13.5px;margin:0 auto 20px;max-width:450px}
 .drop p b{color:var(--ink)}
@@ -407,13 +407,54 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
 @media(prefers-reduced-motion:reduce){
   .card:hover,.kpi:hover{transform:none;box-shadow:var(--shadow)}
 }
+/* ===================== Icon system (inline SVG, stroke-based) ===================== */
+.ico{width:16px;height:16px;flex:0 0 auto;display:block;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* Sidebar collapse / expand */
+.brandtop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+.brandtop .eyebrow{margin-bottom:0;padding-top:2px}
+.nav-toggle{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#C9D8E5;border-radius:9px;cursor:pointer;padding:6px;margin-top:-4px;transition:.15s;font-family:inherit}
+.nav-toggle:hover{background:rgba(255,255,255,.16);color:#fff}
+.nav-toggle .ico{width:17px;height:17px}
+.nav-show-btn{display:none;position:fixed;top:12px;left:12px;z-index:60;align-items:center;justify-content:center;padding:9px;border-radius:10px;cursor:pointer;font-family:inherit;background:var(--navy-deep);color:#EAF0F6;border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow-hover);transition:.15s}
+.nav-show-btn:hover{filter:brightness(1.22)}
+.nav-show-btn .ico{width:18px;height:18px}
+.app-shell.nav-hidden .sidebar{display:none}
+.app-shell.nav-hidden .nav-show-btn{display:inline-flex}
+.app-shell.nav-hidden .topbar{padding-left:64px}
+.app-shell.nav-hidden #loader{padding-top:26px}
+
+/* Icons inside nav, controls, buttons, titles */
+.sidenav a{display:flex;align-items:center;gap:9px}
+.sidenav a .ico{width:15px;height:15px;opacity:.72;transition:opacity .15s}
+.sidenav a:hover .ico,.sidenav a.on .ico{opacity:1}
+.nav-group-label{display:flex;align-items:center;gap:6px}
+.nav-group-label .ico{width:12px;height:12px;stroke-width:2}
+.ctl-label{display:flex;align-items:center;gap:5px}
+.ctl-label .ico{width:12.5px;height:12.5px;stroke-width:2;opacity:.85}
+.theme-toggle-icon{display:inline-flex;align-items:center}
+.theme-toggle-icon .ico{width:15px;height:15px}
+.newfile-btn{display:inline-flex;align-items:center;gap:6px}
+.newfile-btn .ico{width:14px;height:14px}
+.section-title .sec-ico{width:19px;height:19px;color:var(--accent);align-self:center;stroke-width:1.9}
+.drop .icon .ico{width:36px;height:36px;color:var(--accent);margin:0 auto}
+.privacy{display:flex;align-items:center;justify-content:center;gap:7px}
+.privacy .ico{width:13px;height:13px;color:var(--accent)}
+.tg-close{display:inline-flex;align-items:center;justify-content:center}
+.tg-close .ico{width:15px;height:15px}
+@media(max-width:600px){
+  .app-shell.nav-hidden .topbar{padding-left:58px}
+}
 </style>
 </head>
 <body>
-<div class="app-shell">
+<div class="app-shell" id="appShell">
 <aside class="sidebar">
   <div class="brand-mark">
-    <div class="eyebrow" id="eyebrow">Sales analytics</div>
+    <div class="brandtop">
+      <div class="eyebrow" id="eyebrow">Sales analytics</div>
+      <button class="nav-toggle" id="navToggle" type="button" title="Hide navigation (Ctrl/Cmd + B)" aria-label="Hide navigation" aria-expanded="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16.5 15-3-3 3-3"/></svg></button>
+    </div>
     <div class="brandline">
       <h1>Cosmetics Sales Dashboard</h1>
       <span class="sub" id="hdrsub"></span>
@@ -421,16 +462,17 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
   </div>
   <nav class="sidenav" id="sectionNav"></nav>
   <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
-    <span class="theme-toggle-icon" aria-hidden="true">🌙</span>
+    <span class="theme-toggle-icon" aria-hidden="true"></span>
     <span class="theme-toggle-label">Dark mode</span>
   </button>
 </aside>
+<button class="nav-show-btn" id="navShowBtn" type="button" title="Show navigation (Ctrl/Cmd + B)" aria-label="Show navigation"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m13.5 9 3 3-3 3"/></svg></button>
 
 <div class="main">
 
 <div id="loader">
   <div class="drop" id="drop">
-    <div class="icon">📊</div>
+    <div class="icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><rect x="7" y="11" width="3.2" height="6"/><rect x="13" y="7" width="3.2" height="10"/><rect x="19" y="13.5" width="1.6" height="3.5"/></svg></div>
     <h2>Load your sales data</h2>
     <p>Drag your <b>Data.xlsx</b> here, or choose it below. The dashboard rebuilds instantly with your latest orders — each day, just drop in the updated file.</p>
     <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
@@ -438,7 +480,7 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
     <div class="tabs-need">Expected tabs: <code>products</code> · <code>assigned</code> · <code>biseka_online</code> · <code>biseka_shop</code> · <code>lovelab</code> — plus optional <code>BIS-Tracking</code> · <code>Lovelab-Tracking</code> for delivery/courier analytics</div>
   </div>
   <div class="loaderr" id="loaderr"></div>
-  <div class="privacy">🔒 <b>Private:</b> your file is read entirely in your browser — nothing is uploaded or sent anywhere.</div>
+  <div class="privacy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="10.5" width="17" height="10.5" rx="2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg><span><b>Private:</b> your file is read entirely in your browser — nothing is uploaded or sent anywhere.</span></div>
 </div>
 
 <div class="skeleton" id="loadingSkel" style="display:none">
@@ -459,21 +501,21 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
 <div class="topbar">
   <div class="controls">
     <div>
-      <span class="ctl-label">Brand</span>
+      <span class="ctl-label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z"/><circle cx="7.3" cy="7.3" r="1.1"/></svg>Brand</span>
       <div class="seg" id="brandSeg"></div>
     </div>
     <div>
-      <span class="ctl-label">Channel</span>
+      <span class="ctl-label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.4 13.4 7.2 4.2"/><path d="m15.6 6.4-7.2 4.2"/></svg>Channel</span>
       <div class="seg" id="chanSeg"></div>
     </div>
     <div>
-      <span class="ctl-label">Month focus</span>
+      <span class="ctl-label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>Month focus</span>
       <div class="seg months" id="monthSeg"></div>
     </div>
   </div>
   <div class="hdr-actions" id="hdrActions" style="display:none">
     <span class="datachip" id="dataChip"></span>
-    <button class="newfile-btn" id="newFileBtn">↻ New file</button>
+    <button class="newfile-btn" id="newFileBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5.5h-5.5"/></svg>New file</button>
   </div>
 </div>
 
@@ -501,6 +543,50 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 const $=(s,r=document)=>r.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 const fmt=n=>Math.round(n).toLocaleString('en-US');
+
+/* ---------- icon library (inline SVG, Lucide-style strokes) ---------- */
+const ICONS={
+  layout:'<rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7.5" height="9.5" rx="1.5"/><rect x="3" y="15.5" width="7.5" height="5.5" rx="1.5"/>',
+  split:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>',
+  package:'<path d="M20.5 7.6 12 3 3.5 7.6v8.8L12 21l8.5-4.6Z"/><path d="m3.7 7.7 8.3 4.5 8.3-4.5"/><path d="M12 12.2V21"/><path d="m7.75 5.3 8.5 4.6"/>',
+  trophy:'<path d="M6.5 9H5a2.5 2.5 0 0 1 0-5h1.5"/><path d="M17.5 9H19a2.5 2.5 0 0 0 0-5h-1.5"/><path d="M4.5 21.5h15"/><path d="M10 14.6V17c0 1-1.3 1.3-2 2-.7.7-1 1.6-1 2.5"/><path d="M14 14.6V17c0 1 1.3 1.3 2 2 .7.7 1 1.6 1 2.5"/><path d="M17.5 2.5h-11V9a5.5 5.5 0 0 0 11 0Z"/>',
+  users:'<path d="M15.5 21v-2a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7.5" r="3.6"/><path d="M21.5 21v-2a4 4 0 0 0-3-3.85"/><path d="M15.5 3.65a4 4 0 0 1 0 7.7"/>',
+  store:'<path d="m3.2 3.5h17.6L22 8.5H2Z"/><path d="M2 8.5h20"/><path d="M4.5 8.5v12h15v-12"/><path d="M9.5 20.5v-6h5v6"/>',
+  card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.8h19"/><path d="M6.5 15h3.5"/>',
+  branch:'<circle cx="6" cy="5.5" r="2.5"/><circle cx="6" cy="18.5" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8v8"/><path d="M8.5 6.6c4 .6 5.6 2.4 6.8 4.6"/><path d="M8.5 17.4c4-.6 5.6-2.4 6.8-4.6"/>',
+  pin:'<path d="M20 10.2c0 5.8-8 11.8-8 11.8s-8-6-8-11.8a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.8"/>',
+  truck:'<path d="M14.5 17.5V6.5a1 1 0 0 0-1-1H2.5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2"/><path d="M14.5 9.5h3.7l3.3 3.4v3.6a1 1 0 0 1-1 1h-1"/><circle cx="6.2" cy="17.8" r="2.2"/><circle cx="17.3" cy="17.8" r="2.2"/><path d="M8.4 17.8h6.7"/>',
+  scale:'<path d="M12 3.2v17.6"/><path d="M6.5 20.8h11"/><path d="M3.5 6.6h4.2c2.6 0 3.3-1.3 4.3-1.3s1.7 1.3 4.3 1.3h4.2"/><path d="m18.5 8 2.8 6.4a3.2 3.2 0 0 1-5.6 0Z"/><path d="m5.5 8 2.8 6.4a3.2 3.2 0 0 1-5.6 0Z"/>',
+  moon:'<path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.8 8.8 0 1 0 10.8 10.8Z"/>',
+  sun:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.2v2M12 19.8v2M4.1 4.1l1.5 1.5M18.4 18.4l1.5 1.5M2.2 12h2M19.8 12h2M4.1 19.9l1.5-1.5M18.4 5.6l1.5-1.5"/>',
+  book:'<path d="M4.5 19.2A2.3 2.3 0 0 1 6.8 17H20"/><path d="M6.8 2.5H20v19H6.8a2.3 2.3 0 0 1-2.3-2.3V4.8a2.3 2.3 0 0 1 2.3-2.3Z"/>',
+  close:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  folder:'<path d="M3 7.2a2 2 0 0 1 2-2h4l2 2.4h8a2 2 0 0 1 2 2v8.6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+  chart:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 15 3.5-4 3 2.6L20 7"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/>'
+};
+function svgIcon(name,cls){
+  const p=ICONS[name];if(!p)return '';
+  return '<svg class="ico '+(cls||'')+'" viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
+}
+const NAV_ICON={overview:'layout',split:'split',products:'package',ranking:'trophy',people:'users',shops:'store',payments:'card',attribution:'branch',geo:'pin',Trackings:'truck','bis-tracking':'truck','lovelab-tracking':'truck','courier-profiles':'scale'};
+const GROUP_ICON={'Overview':'layout','Sales performance':'chart','Geography & logistics':'globe','Cross-brand':'folder'};
+function sectionIconName(title){
+  const t=String(title).toLowerCase();
+  if(t.indexOf('overview')>-1)return 'layout';
+  if(t.indexOf('online vs shop')>-1)return 'split';
+  if(t.indexOf('product')>-1)return 'package';
+  if(t.indexOf('top &')>-1||t.indexOf('bottom')>-1)return 'trophy';
+  if(t.indexOf('care agent')>-1)return 'users';
+  if(t.indexOf('shop')>-1)return 'store';
+  if(t.indexOf('payment')>-1)return 'card';
+  if(t.indexOf('attribution')>-1)return 'branch';
+  if(t.indexOf('cities')>-1||t.indexOf('district')>-1)return 'pin';
+  if(t.indexOf('courier comparison')>-1)return 'scale';
+  if(t.indexOf('tracking')>-1||t.indexOf('delivery')>-1||t.indexOf('courier')>-1)return 'truck';
+  return 'chart';
+}
+
 let MONTHS=[];
 const STATE={brand:null,channel:null,month:'all'}; // month: 'all' or index 0..6
 
@@ -891,7 +977,7 @@ function ensureTemplateGuideDrawer(){
   if($('#tgOverlay'))return;
   const overlay=el('div','tg-overlay');overlay.id='tgOverlay';
   const drawer=el('aside','tg-drawer');drawer.id='tgDrawer';
-  drawer.innerHTML=`<div class="tg-drawer-head"><h3>Reading the Channel Attribution section</h3><button class="tg-close" aria-label="Close">✕</button></div>
+  drawer.innerHTML=`<div class="tg-drawer-head"><h3>Reading the Channel Attribution section</h3><button class="tg-close" aria-label="Close">${svgIcon('close')}</button></div>
     <div class="tg-drawer-body">
       <p><b>Attribution model</b> reweights each channel's monthly totals — <b>First touch</b> favors earlier months, <b>Last touch</b> favors later months, <b>Linear</b> weighs every month equally (a plain sum).</p>
       <p><b>Order volume by channel</b> is one bar split into segments sized by each channel's weighted total.</p>
@@ -987,7 +1073,7 @@ function secAttribution(d){
   segWrap.innerHTML='<span class="ctl-label" style="display:block">Attribution model</span>';
   const seg=el('div','seg');
   segWrap.append(seg);
-  const guideBtn=el('button','newfile-btn tg-guide-btn','📘 Template guide');
+  const guideBtn=el('button','newfile-btn tg-guide-btn',svgIcon('book')+'Template guide');
   guideBtn.type='button';
   guideBtn.onclick=()=>{ensureTemplateGuideDrawer();window.openTemplateGuide();};
   headRow.append(segWrap,guideBtn);
@@ -1842,7 +1928,7 @@ function kpi(label,val,sub,hero){
   return e;
 }
 function card(title,hint){const c=el('div','card');if(title!==''||hint!==''){c.innerHTML=`<h3>${title}</h3>${hint?`<div class="hint">${hint}</div>`:''}`;}return c;}
-function sectionTitle(num,title,sub){const w=el('div');const t=el('div','section-title');t.innerHTML=`<span class="num">${num}</span><h2>${title}</h2>`;w.append(t);if(sub)w.append(el('p','section-sub',sub));return w;}
+function sectionTitle(num,title,sub){const w=el('div');const t=el('div','section-title');t.innerHTML=`<span class="num">${num}</span>${svgIcon(sectionIconName(title),'sec-ico')}<h2>${title}</h2>`;w.append(t);if(sub)w.append(el('p','section-sub',sub));return w;}
 function legend(names){const l=el('div','legend');const cols=palette(names.length);names.forEach((n,i)=>{const s=el('span');s.innerHTML=`<b style="background:${cols[i]}"></b>${esc(n)}`;l.append(s);});return l;}
 function rangeToNode(html){const d=el('div','chart-wrap');d.innerHTML=html;return d;}
 function rowFromVals(name,vals,tot){const maxCell=Math.max(1,...vals);const tr=el('tr');
@@ -1882,10 +1968,10 @@ function buildNav(d){
     if(s.group!==curGroup){
       curGroup=s.group;
       groupEl=el('div','nav-group');
-      if(curGroup)groupEl.append(el('div','nav-group-label',curGroup));
+      if(curGroup)groupEl.append(el('div','nav-group-label',svgIcon(GROUP_ICON[curGroup]||'chart')+'<span>'+esc(curGroup)+'</span>'));
       nav.append(groupEl);
     }
-    const a=el('a','',s.name);a.onclick=()=>{const t=$('#sec-'+s.id);if(t)t.scrollIntoView({behavior:'smooth'});};a.dataset.sec=s.id;
+    const a=el('a','',svgIcon(NAV_ICON[s.id]||'chart')+'<span>'+esc(s.name)+'</span>');a.onclick=()=>{const t=$('#sec-'+s.id);if(t)t.scrollIntoView({behavior:'smooth'});};a.dataset.sec=s.id;
     (groupEl||nav).append(a);
   });
   const indicator=el('div','nav-indicator');indicator.id='navIndicator';
@@ -2192,7 +2278,7 @@ function loadWorkbook(file){
   const label=btn.querySelector('.theme-toggle-label');
   function reflect(){
     const isDark=root.getAttribute('data-theme')==='dark';
-    icon.textContent=isDark?'☀️':'🌙';
+    icon.innerHTML=svgIcon(isDark?'sun':'moon');
     label.textContent=isDark?'Light mode':'Dark mode';
   }
   reflect();
@@ -2212,6 +2298,30 @@ function loadWorkbook(file){
   drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('hot');const f=e.dataTransfer.files[0];if(f)loadWorkbook(f);});
   $('#newFileBtn').onclick=()=>{$('#dash').style.display='none';$('#hdrActions').style.display='none';$('#eyebrow').textContent='Sales analytics';$('#loader').style.display='block';drop.classList.remove('busy');inp.value='';window.scrollTo(0,0);};
 })();
+
+(function initNavToggle(){
+  const shell=document.getElementById('appShell');
+  const hideBtn=$('#navToggle'), showBtn=$('#navShowBtn');
+  if(!shell)return;
+  function apply(hidden,persist){
+    shell.classList.toggle('nav-hidden',hidden);
+    if(hideBtn)hideBtn.setAttribute('aria-expanded',String(!hidden));
+    if(persist){try{localStorage.setItem('dashboard-nav-hidden',hidden?'1':'0');}catch(e){}}
+    setTimeout(()=>{try{updateNavIndicator(true);}catch(e){}},30);
+  }
+  let start=false;
+  try{start=localStorage.getItem('dashboard-nav-hidden')==='1';}catch(e){}
+  apply(start,false);
+  if(hideBtn)hideBtn.onclick=()=>apply(true,true);
+  if(showBtn)showBtn.onclick=()=>apply(false,true);
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&!e.altKey&&(e.key==='b'||e.key==='B')){
+      e.preventDefault();
+      apply(!shell.classList.contains('nav-hidden'),true);
+    }
+  });
+})();
 </script>
 </body>
+
 </html>
