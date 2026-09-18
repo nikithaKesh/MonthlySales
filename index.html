@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cosmetics Sales Dashboard</title>
+<script>
+/* Apply saved/system theme before first paint to avoid a flash of the wrong theme */
+(function(){
+  try{
+    var t=localStorage.getItem('dashboard-theme');
+    if(!t){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+    document.documentElement.setAttribute('data-theme',t);
+  }catch(e){}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,14 +26,32 @@
   --love:#9B4460; --love-soft:#EFE1E7; --love-tint:#F8F1F4;
   --extract:#2C5C99; --extract-soft:#E2E9F2; --extract-tint:#F1F4F9;
   --gold:#93702F; --shadow:0 1px 2px rgba(16,24,40,.04),0 6px 16px rgba(16,24,40,.06);
+  --shadow-hover:0 2px 4px rgba(16,24,40,.06),0 10px 24px rgba(16,24,40,.10);
   --accent:var(--navy); --accent-soft:var(--navy-soft); --accent-tint:var(--navy-tint);
   --brand-accent:var(--biseka); --brand-soft:var(--biseka-soft); --brand-tint:var(--biseka-tint);
   --sidebar-w:264px;
+  color-scheme:light;
 }
+:root[data-theme="dark"]{
+  --paper:#0B0F14; --surface:#151B23; --ink:#E7EAEE; --ink-soft:#9DA7B3;
+  --line:#262E38; --line-soft:#1D242C; --muted:#6B7480;
+  --navy:#6FA8DC; --navy-deep:#0A2C46; --navy-soft:#1E3A52; --navy-tint:#132330;
+  --biseka:#4CB68C; --biseka-soft:#1E3A30; --biseka-tint:#132420;
+  --love:#D98BA6; --love-soft:#3A2530; --love-tint:#241A20;
+  --extract:#7AA6E0; --extract-soft:#22344C; --extract-tint:#16212F;
+  --gold:#D8B058; --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 20px rgba(0,0,0,.45);
+  --shadow-hover:0 2px 6px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5);
+  --c-fardar-tint:#16202E; --c-citypack-tint:#122A22; --c-flash-tint:#2B2016; --c-domex-tint:#2A1820;
+  color-scheme:dark;
+}
+[data-theme="dark"] .loaderr{color:#FF9A90;background:#3A1F1F;border-color:#5C2B2B}
+[data-theme="dark"] .skel-block{background:linear-gradient(100deg,var(--line-soft) 30%,#232B35 45%,var(--line-soft) 60%);background-size:200% 100%}
+[data-theme="dark"] .brand-btn-logo{background:#EDEDED}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 html,body{overflow-x:clip}
-body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;transition:background-color .2s ease,color .2s ease}
+body,.card,.kpi,.topbar,.surface,.courier-card,.ee-hero,.brand-hero,table,.search,.mini-select,.seg,.tbl-scroll{transition:background-color .2s ease,color .2s ease,border-color .2s ease}
 h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;margin:0;letter-spacing:-.005em}
 .tnum{font-variant-numeric:tabular-nums}
 
@@ -65,6 +93,12 @@ h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;margin:0;let
 .sidenav a{font-size:13.5px;font-weight:500;color:#C9D8E5;text-decoration:none;padding:9px 10px;border-radius:8px;border-left:2px solid transparent;transition:.15s;cursor:pointer}
 .sidenav a:hover{color:#fff;background:rgba(255,255,255,.06)}
 .sidenav a.on{color:#fff;background:rgba(255,255,255,.1);border-left-color:#7FA5C6}
+
+/* Theme toggle */
+.theme-toggle{margin-top:auto;display:flex;align-items:center;gap:9px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#C9D8E5;font-family:inherit;font-size:12.5px;font-weight:600;padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s}
+.theme-toggle:hover{background:rgba(255,255,255,.12);color:#fff}
+.theme-toggle-icon{font-size:14px;line-height:1;flex:0 0 auto}
+@media(max-width:900px){.theme-toggle{width:auto;margin-top:0}}
 
 /* Cards */
 .grid{display:grid;gap:16px;margin-top:22px}
@@ -265,9 +299,9 @@ svg.chart.donut{overflow:visible}
 
 /* Card + KPI hover lift */
 .card{position:relative;transition:box-shadow .2s ease, transform .2s ease}
-.card:hover{box-shadow:0 2px 4px rgba(16,24,40,.06),0 10px 24px rgba(16,24,40,.10);transform:translateY(-2px)}
+.card:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px)}
 .kpi{position:relative;overflow:visible;transition:box-shadow .2s ease, transform .2s ease}
-.kpi:hover{box-shadow:0 2px 4px rgba(16,24,40,.06),0 10px 24px rgba(16,24,40,.10);transform:translateY(-2px)}
+.kpi:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px)}
 
 /* Table row hover tween (background-color already set on rule above; this adds the transition) */
 tbody tr{transition:background-color .15s ease}
@@ -301,6 +335,55 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
 /* Drag-over pulse (adds to the existing color change on .drop.hot) */
 .drop.hot{animation:dropPulse 1.1s ease-in-out infinite}
 @keyframes dropPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+
+/* ============ Channel Attribution: sliding pill, rail, scatter, waterfall, drawer ============ */
+
+/* Sliding pill behind segmented controls (brand/channel/month + attribution model) */
+.seg{position:relative}
+.seg button{position:relative;z-index:1;background:transparent}
+.seg button.on{background:transparent}
+.seg-pill{position:absolute;top:4px;bottom:4px;left:0;background:var(--accent);border-radius:8px;z-index:0;pointer-events:none;opacity:0;
+  transition:transform .32s cubic-bezier(.3,.7,.4,1), width .32s cubic-bezier(.3,.7,.4,1), opacity .2s ease}
+
+/* Hover dim/highlight — shared by rail, scatter, waterfall, mix bars, table */
+[data-channel]{transition:opacity .2s ease}
+.dimmed{opacity:.3!important}
+
+/* Sparklines */
+.k-spark{margin-top:10px;opacity:.9}
+.k-spark svg{display:block;width:100%;height:26px}
+
+/* Revenue rail — stacked single bar */
+.rail-track{display:flex;height:34px;border-radius:8px;overflow:hidden;background:var(--line-soft)}
+.rail-seg{height:100%;width:0;min-width:2px;transition:width .7s cubic-bezier(.2,.7,.2,1), opacity .2s ease;cursor:default}
+.rail-legend{display:flex;flex-wrap:wrap;gap:9px 16px;margin-top:13px;font-size:12px;color:var(--ink-soft)}
+.rail-legend-item{display:inline-flex;align-items:center;gap:6px;cursor:default}
+.rail-legend-item b{width:9px;height:9px;border-radius:3px;display:inline-block;flex:0 0 auto}
+.rail-legend-val{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;margin-left:2px}
+
+/* Bubble scatter + waterfall bars */
+.scatter-bubble{transition:r .6s cubic-bezier(.2,.7,.2,1), opacity .2s ease;cursor:default}
+.wf-bar{transition:height .7s cubic-bezier(.2,.7,.2,1), y .7s cubic-bezier(.2,.7,.2,1), opacity .2s ease;cursor:default}
+.wf-connector{opacity:.6}
+
+/* Thin progress bars ("paths"/channel mix) */
+.bar-track.thin{height:10px}
+.paths-panel .bar-row{cursor:default}
+
+/* Slide-in Template guide drawer */
+.tg-overlay{position:fixed;inset:0;background:rgba(9,14,20,.42);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:60}
+.tg-overlay.open{opacity:1;pointer-events:auto}
+.tg-drawer{position:fixed;top:0;right:0;height:100vh;width:min(420px,90vw);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow-hover);transform:translateX(100%);transition:transform .32s cubic-bezier(.3,.7,.4,1);z-index:61;display:flex;flex-direction:column;overflow-y:auto}
+.tg-drawer.open{transform:translateX(0)}
+.tg-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 22px 12px;border-bottom:1px solid var(--line-soft)}
+.tg-drawer-head h3{font-size:16px;line-height:1.3;margin:0}
+.tg-close{background:none;border:none;font-size:15px;color:var(--muted);cursor:pointer;padding:5px 8px;border-radius:7px;line-height:1}
+.tg-close:hover{color:var(--ink);background:var(--line-soft)}
+.tg-drawer-body{padding:16px 22px 26px;font-size:13px;line-height:1.6;color:var(--ink-soft)}
+.tg-drawer-body p{margin:0 0 14px}
+.tg-drawer-body b{color:var(--ink)}
+.tg-guide-btn{align-self:flex-end}
+@media(max-width:640px){.tg-drawer-body{padding:14px 16px 22px}.tg-drawer-head{padding:16px 16px 10px}}
 
 /* Skeleton shimmer loading state, shown while the workbook parses */
 .skeleton{max-width:1180px;margin:44px auto 0;padding:0 24px}
@@ -337,6 +420,10 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
     </div>
   </div>
   <nav class="sidenav" id="sectionNav"></nav>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+    <span class="theme-toggle-icon" aria-hidden="true">🌙</span>
+    <span class="theme-toggle-label">Dark mode</span>
+  </button>
 </aside>
 
 <div class="main">
@@ -590,6 +677,340 @@ function barList(rows,{lo=false,max=null}={}){
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
+/* ---------- seg sliding pill (FLIP-based, survives full innerHTML rebuilds) ---------- */
+function mountSegPill(segEl,instant){
+  if(!segEl)return;
+  const prevPill=segEl.querySelector(':scope > .seg-pill');
+  const firstRect=prevPill?prevPill.getBoundingClientRect():null;
+  if(prevPill)prevPill.remove();
+  const pill=el('div','seg-pill');
+  segEl.insertBefore(pill,segEl.firstChild);
+  const onBtn=segEl.querySelector('button.on');
+  if(!onBtn){pill.style.opacity='0';return;}
+  const segRect=segEl.getBoundingClientRect();
+  const btnRect=onBtn.getBoundingClientRect();
+  const targetLeft=btnRect.left-segRect.left+segEl.scrollLeft;
+  pill.style.width=btnRect.width+'px';
+  if(firstRect&&!instant&&!prefersReducedMotion()){
+    const deltaX=firstRect.left-btnRect.left;
+    pill.style.transition='none';
+    pill.style.transform=`translateX(${targetLeft+deltaX}px)`;
+    pill.style.opacity='1';
+    void pill.offsetWidth;
+    pill.style.transition='';
+    requestAnimationFrame(()=>{pill.style.transform=`translateX(${targetLeft}px)`;});
+  }else{
+    pill.style.transition='none';
+    pill.style.transform=`translateX(${targetLeft}px)`;
+    pill.style.opacity='1';
+    void pill.offsetWidth;
+    pill.style.transition='';
+  }
+}
+window.addEventListener('resize',()=>{document.querySelectorAll('.seg').forEach(s=>mountSegPill(s,true));});
+
+/* ---------- hover dim/highlight across linked visuals ---------- */
+function wireHoverDim(container){
+  const nodes=[...container.querySelectorAll('[data-channel]')];
+  if(!nodes.length)return;
+  const setDim=active=>{nodes.forEach(n=>n.classList.toggle('dimmed',!!active&&n.dataset.channel!==active));};
+  nodes.forEach(n=>{
+    n.addEventListener('mouseenter',()=>setDim(n.dataset.channel));
+    n.addEventListener('mouseleave',()=>setDim(null));
+  });
+}
+
+/* ---------- sparkline ---------- */
+function sparklineSvg(values,{w=88,h=26,color='var(--muted)'}={}){
+  if(!values||!values.length)return `<svg class="spark" viewBox="0 0 ${w} ${h}"></svg>`;
+  const max=Math.max(...values), min=Math.min(0,...values);
+  const range=(max-min)||1;
+  const pts=values.map((v,i)=>{
+    const x=values.length<=1?w/2:w*i/(values.length-1);
+    const y=h-((v-min)/range)*h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+function kpiSpark(label,val,sub,arr,opts={}){
+  const e=kpi(label,val,sub,opts.hero);
+  if(arr&&arr.length){
+    const s=el('div','k-spark');
+    s.innerHTML=sparklineSvg(arr,{color:opts.hero?'var(--accent)':'var(--muted)'});
+    e.append(s);
+  }
+  return e;
+}
+
+/* ---------- attribution weighting (repurposes existing per-channel monthly data —
+   the source workbook has no marketing spend/first-last-touch tracking, so "First/Linear/Last
+   touch" here reweights each channel's own monthly order counts toward its early, even, or
+   late months) ---------- */
+function attributionWeights(model,n){
+  if(n<=1)return [1];
+  if(model==='first')return Array.from({length:n},(_,i)=>n-i);
+  if(model==='last')return Array.from({length:n},(_,i)=>i+1);
+  return Array(n).fill(1);
+}
+function weightedTotal(arr,model){
+  const n=arr.length;if(!n)return 0;
+  const w=attributionWeights(model,n);
+  const wsum=w.reduce((a,b)=>a+b,0)||1;
+  const avg=arr.reduce((s,v,i)=>s+v*w[i],0)/wsum;
+  return avg*n;
+}
+let ATTR_MODEL='linear';
+function computeAttrRows(d){
+  const map=d.paymentMonthly||d.cityMonthly||{};
+  const entries=Object.entries(map);
+  if(!entries.length)return {rows:[],n:0};
+  const n=entries[0][1].length;
+  const rows=entries.map(([name,arr])=>({
+    name,arr,
+    total:weightedTotal(arr,ATTR_MODEL),
+    active:arr.filter(v=>v>0).length,
+    peak:Math.max(0,...arr)
+  })).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+  return {rows,n};
+}
+function aggregateArr(rows,n){const agg=new Array(n).fill(0);rows.forEach(r=>r.arr.forEach((v,i)=>agg[i]+=v));return agg;}
+function activeCountArr(rows,n){const c=new Array(n).fill(0);rows.forEach(r=>r.arr.forEach((v,i)=>{if(v>0)c[i]++;}));return c;}
+
+/* ---------- revenue rail — one bar, one colored segment per channel ---------- */
+function revenueRail(rows,total){
+  const colors=palette(rows.length);
+  const wrap=el('div');
+  const track=el('div','rail-track');
+  rows.forEach((r,i)=>{
+    const seg=el('div','rail-seg');
+    seg.dataset.channel=r.name;
+    seg.style.background=colors[i];
+    seg.title=`${r.name} — ${fmt(r.total)} (${total?(r.total/total*100).toFixed(1):'0'}%)`;
+    track.append(seg);
+    requestAnimationFrame(()=>{seg.style.width=(total?r.total/total*100:0)+'%';});
+  });
+  wrap.append(track);
+  const leg=el('div','rail-legend');
+  rows.forEach((r,i)=>{
+    const item=el('span','rail-legend-item');
+    item.dataset.channel=r.name;
+    item.innerHTML=`<b style="background:${colors[i]}"></b>${esc(r.name)}<span class="rail-legend-val">${fmt(r.total)}</span>`;
+    leg.append(item);
+  });
+  wrap.append(leg);
+  return wrap;
+}
+
+/* ---------- bubble scatter — consistency (months active) vs. weighted volume,
+   bubble size = single best month. No cost/revenue figures exist in the source
+   file, so this stands in for a spend/return view using genuine order activity. ---------- */
+function bubbleScatter(rows){
+  const w=620,h=260,padL=50,padR=20,padT=18,padB=40;
+  const iw=w-padL-padR, ih=h-padT-padB;
+  const maxX=Math.max(1,...rows.map(r=>r.active));
+  const maxY=Math.max(1,...rows.map(r=>r.total));
+  const maxPeak=Math.max(1,...rows.map(r=>r.peak));
+  const colors=palette(rows.length);
+  const x=v=>padL+(maxX?v/maxX*iw:0);
+  const y=v=>padT+ih-(maxY?v/maxY*ih:0);
+  const rr=v=>6+(maxPeak?v/maxPeak*20:0);
+  let grid='',ax='';
+  for(let g=0;g<=4;g++){const gy=padT+ih*g/4;grid+=`<line class="gridline" x1="${padL}" y1="${gy}" x2="${w-padR}" y2="${gy}"/>`;ax+=`<text class="axis-lab" x="${padL-8}" y="${gy+3}" text-anchor="end">${fmt(Math.round(maxY*(1-g/4)))}</text>`;}
+  for(let gx=0;gx<=maxX;gx++){ax+=`<text class="axis-lab" x="${x(gx).toFixed(1)}" y="${h-14}" text-anchor="middle">${gx}</text>`;}
+  let bubbles='';
+  rows.forEach((r,i)=>{
+    bubbles+=`<circle class="scatter-bubble" data-channel="${esc(r.name)}" data-r="${rr(r.peak).toFixed(1)}" cx="${x(r.active).toFixed(1)}" cy="${y(r.total).toFixed(1)}" r="0" fill="${colors[i]}" fill-opacity="0.72" stroke="${colors[i]}" stroke-width="1.5"><title>${esc(r.name)} · active ${r.active} mo · total ${fmt(r.total)} · peak ${fmt(r.peak)}</title></circle>`;
+  });
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${grid}${bubbles}${ax}
+    <text class="axis-lab" x="${w/2}" y="${h-1}" text-anchor="middle" style="font-weight:600">Months active</text></svg>`;
+}
+
+/* ---------- waterfall / bridge — each channel's contribution stacks to the grand total ---------- */
+function waterfallChart(rows,total){
+  const w=640,h=250,padL=50,padR=20,padT=16,padB=56;
+  const iw=w-padL-padR, ih=h-padT-padB;
+  const n=rows.length+1;
+  const gw=iw/n, bw=Math.min(56,gw*0.62);
+  const max=total||1;
+  const y=v=>padT+ih-(v/max)*ih;
+  const colors=palette(rows.length);
+  let cum=0,bars='',ax='',grid='';
+  for(let g=0;g<=4;g++){const gy=padT+ih*g/4;grid+=`<line class="gridline" x1="${padL}" y1="${gy}" x2="${w-padR}" y2="${gy}"/>`;ax+=`<text class="axis-lab" x="${padL-8}" y="${gy+3}" text-anchor="end">${fmt(Math.round(max*(1-g/4)))}</text>`;}
+  rows.forEach((r,i)=>{
+    const x0=padL+gw*i+(gw-bw)/2;
+    const yBase=y(cum), yTop=y(cum+r.total);
+    bars+=`<rect class="wf-bar" data-channel="${esc(r.name)}" x="${x0.toFixed(1)}" y="${yBase.toFixed(1)}" width="${bw.toFixed(1)}" height="0" data-y="${yTop.toFixed(1)}" data-h="${(yBase-yTop).toFixed(1)}" fill="${colors[i]}" rx="4"><title>${esc(r.name)} · +${fmt(r.total)}</title></rect>`;
+    if(i>0){const prevX=padL+gw*(i-1)+(gw-bw)/2+bw;bars+=`<line class="wf-connector" x1="${prevX.toFixed(1)}" y1="${y(cum).toFixed(1)}" x2="${x0.toFixed(1)}" y2="${y(cum).toFixed(1)}" stroke="var(--line)" stroke-dasharray="3 3"/>`;}
+    ax+=`<text class="axis-lab" x="${(x0+bw/2).toFixed(1)}" y="${h-36}" text-anchor="middle">${esc(r.name.length>10?r.name.slice(0,9)+'…':r.name)}</text>`;
+    cum+=r.total;
+  });
+  const xT=padL+gw*rows.length+(gw-bw)/2;
+  bars+=`<rect class="wf-bar wf-total" x="${xT.toFixed(1)}" y="${y(0).toFixed(1)}" width="${bw.toFixed(1)}" height="0" data-y="${y(total).toFixed(1)}" data-h="${(y(0)-y(total)).toFixed(1)}" fill="var(--ink-soft)" rx="4"><title>Total · ${fmt(total)}</title></rect>`;
+  ax+=`<text class="axis-lab" x="${(xT+bw/2).toFixed(1)}" y="${h-36}" text-anchor="middle" style="font-weight:600">Total</text>`;
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${grid}${bars}${ax}</svg>`;
+}
+
+/* ---------- paths panel — thin progress bars comparing each channel's share ---------- */
+function pathsPanel(rows){
+  const max=Math.max(1,...rows.map(r=>r.total));
+  const wrap=el('div','bars paths-panel');
+  rows.forEach(r=>{
+    const row=el('div','bar-row');
+    row.dataset.channel=r.name;
+    row.innerHTML=`<div class="lab" title="${esc(r.name)}">${esc(r.name)}</div>
+      <div class="bar-track thin"><div class="bar-fill" style="width:0"></div></div>
+      <div class="val">${fmt(r.total)}</div>`;
+    wrap.append(row);
+    requestAnimationFrame(()=>{row.querySelector('.bar-fill').style.width=(r.total/max*100)+'%';});
+  });
+  return wrap;
+}
+
+/* ---------- channel detail table — inline sparkline per row, supports FLIP re-rank ---------- */
+function attrTable(rows,months){
+  const wrap=el('div','tbl-scroll');
+  const table=el('table');
+  table.innerHTML='<thead><tr><th style="text-align:left">Channel</th><th>Trend</th><th>Active mo.</th><th>Total</th></tr></thead>';
+  const tbody=el('tbody');
+  rows.forEach(r=>{
+    const tr=el('tr');
+    tr.dataset.channel=r.name;
+    tr.innerHTML=`<td style="text-align:left">${esc(r.name)}</td>
+      <td>${sparklineSvg(r.arr,{w:80,h:22,color:'var(--accent)'})}</td>
+      <td>${r.active}/${months}</td>
+      <td class="tot tnum">${fmt(r.total)}</td>`;
+    tbody.append(tr);
+  });
+  table.append(tbody);
+  wrap.append(table);
+  return wrap;
+}
+
+/* ---------- Template guide — slide-in drawer with fade overlay ---------- */
+function ensureTemplateGuideDrawer(){
+  if($('#tgOverlay'))return;
+  const overlay=el('div','tg-overlay');overlay.id='tgOverlay';
+  const drawer=el('aside','tg-drawer');drawer.id='tgDrawer';
+  drawer.innerHTML=`<div class="tg-drawer-head"><h3>Reading the Channel Attribution section</h3><button class="tg-close" aria-label="Close">✕</button></div>
+    <div class="tg-drawer-body">
+      <p><b>Attribution model</b> reweights each channel's monthly totals — <b>First touch</b> favors earlier months, <b>Last touch</b> favors later months, <b>Linear</b> weighs every month equally (a plain sum).</p>
+      <p><b>Order volume by channel</b> is one bar split into segments sized by each channel's weighted total.</p>
+      <p><b>Consistency vs. volume</b> plots months-active against weighted total; bubble size is that channel's single best month. The source file has no cost or revenue figures, so this uses order activity instead.</p>
+      <p><b>How channels build the total</b> is a waterfall — each channel's contribution stacks up, step by step, to the grand total bar.</p>
+      <p>Hover any channel — in the rail, the bubbles, the waterfall, the mix bars, or the table — to trace it through every other panel.</p>
+    </div>`;
+  document.body.append(overlay,drawer);
+  const close=()=>{overlay.classList.remove('open');drawer.classList.remove('open');};
+  overlay.addEventListener('click',close);
+  drawer.querySelector('.tg-close').addEventListener('click',close);
+  window.openTemplateGuide=()=>{overlay.classList.add('open');drawer.classList.add('open');};
+}
+ensureTemplateGuideDrawer();
+
+/* ---------- Channel Attribution section ---------- */
+function renderAttrBody(body,d){
+  const {rows,n}=computeAttrRows(d);
+  if(!rows.length){body.innerHTML='<div class="empty">No payment or city data available for this channel.</div>';return;}
+  const total=rows.reduce((a,r)=>a+r.total,0);
+  const agg=aggregateArr(rows,n);
+  const activeCnt=activeCountArr(rows,n);
+  const peakIdx=agg.indexOf(Math.max(...agg));
+  const monthsLbl=MONTHS.slice(0,n);
+  const colors=palette(rows.length);
+
+  const oldPos=new Map();
+  body.querySelectorAll('#attrTableWrap tbody tr').forEach(tr=>oldPos.set(tr.dataset.channel,tr.getBoundingClientRect()));
+
+  body.innerHTML='';
+
+  const kg=el('div','grid cols-4');
+  kg.append(
+    kpiSpark('Total orders (model)',fmt(total),`${rows.length} channels · ${ATTR_MODEL} weighting`,agg,{hero:true}),
+    kpiSpark('Leading channel',rows[0].name,`${total?(rows[0].total/total*100).toFixed(1):'0'}% of total`,rows[0].arr),
+    kpiSpark('Channels tracked',String(rows.length),`active ${monthsLbl[0]||''}–${monthsLbl[n-1]||''}`,activeCnt),
+    kpiSpark('Busiest month',monthsLbl[peakIdx]||'—',fmt(agg[peakIdx]||0)+' orders',agg),
+  );
+  body.append(kg);
+
+  const railCard=card('Order volume by channel','Stacked by weighted total — hover a segment to trace it through the panels below');
+  railCard.append(revenueRail(rows,total));
+  const donutCard=card('Channel share','Same totals as a share of the whole');
+  donutCard.append(rangeToNode(donutChart(rows.map((r,i)=>({label:r.name,value:r.total,color:colors[i]})))));
+  const g1=el('div','grid cols-2');g1.style.marginTop='16px';g1.append(railCard,donutCard);
+  body.append(g1);
+
+  const scatCard=card('Consistency vs. volume','Bubble size = peak single month');
+  scatCard.append(rangeToNode(bubbleScatter(rows)));
+  const wfCard=card('How channels build the total',`Each channel’s contribution stacks up to ${fmt(total)}`);
+  wfCard.append(rangeToNode(waterfallChart(rows,total)));
+  const g2=el('div','grid cols-2');g2.style.marginTop='16px';g2.append(scatCard,wfCard);
+  body.append(g2);
+
+  const pathsCard=card('Channel mix','Share of total, side by side');
+  pathsCard.append(pathsPanel(rows));
+  const g3=el('div','grid');g3.style.marginTop='16px';g3.append(pathsCard);
+  body.append(g3);
+
+  const tableCard=card('Channel detail','Sorted by weighted total — flip the model above to re-rank');
+  const tableWrap=el('div');tableWrap.id='attrTableWrap';
+  tableWrap.append(attrTable(rows,n));
+  tableCard.append(tableWrap);
+  const g4=el('div','grid');g4.style.marginTop='16px';g4.append(tableCard);
+  body.append(g4);
+
+  animateCharts(body);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    body.querySelectorAll('.wf-bar').forEach(b=>{b.setAttribute('y',b.dataset.y);b.setAttribute('height',b.dataset.h);});
+    body.querySelectorAll('.scatter-bubble').forEach(c=>{c.setAttribute('r',c.dataset.r);});
+  }));
+
+  if(oldPos.size&&!prefersReducedMotion()){
+    tableWrap.querySelectorAll('tbody tr').forEach(tr=>{
+      const prev=oldPos.get(tr.dataset.channel);
+      if(!prev)return;
+      const now=tr.getBoundingClientRect();
+      const dy=prev.top-now.top;
+      if(Math.abs(dy)<0.5)return;
+      tr.style.transition='none';
+      tr.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{tr.style.transition='transform .45s cubic-bezier(.2,.7,.2,1)';tr.style.transform='';});
+    });
+  }
+
+  wireHoverDim(body);
+}
+function secAttribution(d){
+  const sec=el('section','section');sec.id='sec-attribution';
+  sec.append(sectionTitle('','Channel Attribution',`Compare ${STATE.brand} channels under different attribution weightings — uses the full period, independent of the Month filter above`));
+  const headRow=el('div');headRow.style.cssText='display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;margin:4px 0 18px';
+  const segWrap=el('div');
+  segWrap.innerHTML='<span class="ctl-label" style="display:block">Attribution model</span>';
+  const seg=el('div','seg');
+  segWrap.append(seg);
+  const guideBtn=el('button','newfile-btn tg-guide-btn','📘 Template guide');
+  guideBtn.type='button';
+  guideBtn.onclick=()=>{ensureTemplateGuideDrawer();window.openTemplateGuide();};
+  headRow.append(segWrap,guideBtn);
+  sec.append(headRow);
+  const body=el('div');body.id='attrBody';
+  sec.append(body);
+  [['first','First touch'],['linear','Linear'],['last','Last touch']].forEach(([key,label])=>{
+    const b=el('button',ATTR_MODEL===key?'on':'',label);
+    b.onclick=()=>{
+      if(ATTR_MODEL===key)return;
+      ATTR_MODEL=key;
+      [...seg.children].forEach(c=>c.classList.remove('on'));
+      b.classList.add('on');
+      mountSegPill(seg);
+      renderAttrBody(body,d);
+    };
+    seg.append(b);
+  });
+  requestAnimationFrame(()=>mountSegPill(seg,true));
+  renderAttrBody(body,d);
+  return sec;
+}
+
 /* ---------- sections ---------- */
 const SECTIONS=[
   {id:'overview', name:'Overview', group:'Overview', build:secOverview, when:d=>!d.isExactExtract},
@@ -599,6 +1020,7 @@ const SECTIONS=[
   {id:'people',  name:'Care Agents', group:'Sales performance', build:secPeople, when:d=>d.userMonthly},
   {id:'shops',   name:'Shops', group:'Sales performance', build:secShops, when:d=>d.shopMonthly},
   {id:'payments',name:'Payments & Status', group:'Sales performance', build:secPay, when:d=>d.paymentMonthly},
+  {id:'attribution',name:'Channel Attribution', group:'Sales performance', build:secAttribution, when:d=>!!(d.paymentMonthly||d.cityMonthly)},
   {id:'geo',     name:'Cities & Districts', group:'Geography & logistics', build:secGeo, when:d=>d.cityMonthly},
   {id:'Trackings',name:'Combined Trackings', group:'Cross-brand', build:secExactExtract, when:d=>d.isExactExtract},
   {id:'bis-tracking',name:'BIS Tracking', group:'Cross-brand', build:()=>secTrackDetail('bis'), when:d=>d.isExactExtract&&DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
@@ -1441,13 +1863,16 @@ function buildControls(){
     // no tracking data available to build a combined view — keep it visible but disabled
     const ee=el('button','',"Trackings");ee.disabled=true;ee.title="No tracking data in the source file";bs.append(ee);
   }
+  mountSegPill(bs);
 
   const cs=$('#chanSeg');cs.innerHTML='';
   Object.keys(DATA.brands[STATE.brand].channels).forEach(ch=>{const btn=el('button',ch===STATE.channel?'on':'',ch);btn.onclick=()=>{STATE.channel=ch;render();};cs.append(btn);});
+  mountSegPill(cs);
 
   const ms=$('#monthSeg');ms.innerHTML='';
   const all=el('button',STATE.month==='all'?'on':'','All');all.onclick=()=>{STATE.month='all';render();};ms.append(all);
   MONTHS.forEach((m,i)=>{const btn=el('button',STATE.month===i?'on':'',m);btn.onclick=()=>{STATE.month=i;render();};ms.append(btn);});
+  mountSegPill(ms);
 }
 function buildNav(d){
   const nav=$('#sectionNav');nav.innerHTML='';
@@ -1759,6 +2184,25 @@ function loadWorkbook(file){
   };
   reader.readAsArrayBuffer(file);
 }
+(function initTheme(){
+  const root=document.documentElement;
+  const btn=$('#themeToggle');
+  if(!btn)return;
+  const icon=btn.querySelector('.theme-toggle-icon');
+  const label=btn.querySelector('.theme-toggle-label');
+  function reflect(){
+    const isDark=root.getAttribute('data-theme')==='dark';
+    icon.textContent=isDark?'☀️':'🌙';
+    label.textContent=isDark?'Light mode':'Dark mode';
+  }
+  reflect();
+  btn.onclick=()=>{
+    const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    reflect();
+    try{localStorage.setItem('dashboard-theme',next);}catch(e){}
+  };
+})();
 (function initLoader(){
   const inp=$('#fileInput'), drop=$('#drop');
   $('#pickBtn').onclick=()=>inp.click();
