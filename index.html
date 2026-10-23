@@ -445,6 +445,9 @@ svg.chart.donut circle{transition:stroke-dasharray .8s cubic-bezier(.2,.7,.2,1)}
 @media(max-width:600px){
   .app-shell.nav-hidden .topbar{padding-left:58px}
 }
+
+.fb-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.fb-chk{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
 </style>
 </head>
 <body>
@@ -569,7 +572,7 @@ function svgIcon(name,cls){
   const p=ICONS[name];if(!p)return '';
   return '<svg class="ico '+(cls||'')+'" viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
 }
-const NAV_ICON={overview:'layout',split:'split',products:'package',ranking:'trophy',people:'users',shops:'store',payments:'card',attribution:'branch',geo:'pin',Trackings:'truck','bis-tracking':'truck','lovelab-tracking':'truck','courier-profiles':'scale'};
+const NAV_ICON={category:'package',feedback:'users',overview:'layout',split:'split',products:'package',ranking:'trophy',people:'users',shops:'store',payments:'card',attribution:'branch',geo:'pin',Trackings:'truck','bis-tracking':'truck','lovelab-tracking':'truck','courier-profiles':'scale'};
 const GROUP_ICON={'Overview':'layout','Sales performance':'chart','Geography & logistics':'globe','Cross-brand':'folder'};
 function sectionIconName(title){
   const t=String(title).toLowerCase();
@@ -1097,17 +1100,161 @@ function secAttribution(d){
   return sec;
 }
 
+
+/* ---------- Category performance ---------- */
+
+
+const effCat=(n,o)=>o.sheet||'Uncategorized';
+let CAT_BRAND='Biseka';
+function secCategory(d){
+  const sec=el('section','section');sec.id='sec-category';
+  const allBrands=[...new Set(Object.values(d.items).flatMap(o=>Object.keys(o.brands||{})))];
+  if(!allBrands.includes(CAT_BRAND))CAT_BRAND=allBrands[0]||'All brands';
+  sec.append(sectionTitle('','Category Performance',`Categories calculated from sold SKU codes and the Products sheet · ${monthLabel()}`));
+  const switchCard=card('Select brand','Each brand has its own category ranking, monthly sales and product breakdown.');
+  const seg=el('div','seg');seg.style.marginTop='12px';
+  const choices=['All brands',...allBrands];
+  choices.forEach(brand=>{const btn=el('button','',brand);btn.type='button';btn.classList.toggle('on',CAT_BRAND===brand);
+    // The sliding-pill control is not needed for this independent filter.
+    btn.style.background=CAT_BRAND===brand?'var(--accent)':'transparent';btn.style.color=CAT_BRAND===brand?'#fff':'var(--ink-soft)';
+    btn.onclick=()=>{CAT_BRAND=brand;render();};seg.append(btn);});
+  switchCard.append(seg);sec.append(switchCard);
+  const cats={};let missingUnits=0;
+  const empty=()=>new Array(MONTHS.length).fill(0);
+  Object.values(d.items).forEach(o=>{
+    const byBrand=CAT_BRAND==='All brands'?o.monthly:(o.brands[CAT_BRAND]||empty());
+    if(!byBrand.some(v=>v>0))return;
+    const category=effCat(o.name,o);
+    if(category==='Uncategorized')missingUnits+=pick(byBrand);
+    const c=cats[category]=cats[category]||{monthly:empty(),prods:{}};
+    byBrand.forEach((v,i)=>c.monthly[i]+=v);
+    const product=o.name||o.code;
+    const old=c.prods[product]||empty();c.prods[product]=old.map((v,i)=>v+byBrand[i]);
+  });
+  const rows=Object.entries(cats).map(([n,o])=>({n,o,u:pick(o.monthly)})).filter(r=>r.u>0).sort((a,b)=>b.u-a.u);
+  const total=rows.reduce((a,r)=>a+r.u,0),share=u=>total?Math.round(u/total*100):0;
+  const top=rows[0];const k=el('div','grid cols-4');
+  k.append(kpi('Brand',CAT_BRAND,'Selected sales source',true),kpi('Units sold',fmt(total),monthLabel()),
+    kpi('Leading category',top?top.n:'—',top?`${fmt(top.u)} units · ${share(top.u)}%`:''),
+    kpi('Uncategorized units',fmt(missingUnits),'Review product category assignments'));
+  sec.append(k);
+  const g=el('div','grid cols-2');g.style.marginTop='16px';
+  const c1=card('Category ranking',`${CAT_BRAND} · units sold and percentage share`);
+  c1.append(barList(rows.map((r,i)=>({label:`${r.n} · ${share(r.u)}%`,value:r.u,rank:i+1}))));
+  const c2=card('Category totals',`${CAT_BRAND} · ${monthLabel()}`);
+  const th=el('div','tbl-scroll'),t=el('table');t.innerHTML='<thead><tr><th>Category</th><th>Units</th><th>Share</th></tr></thead>';
+  const body=el('tbody');rows.forEach(r=>{const tr=el('tr');[r.n,fmt(r.u),share(r.u)+'%'].forEach(v=>{const td=el('td');td.textContent=v;tr.append(td);});body.append(tr);});
+  t.append(body);th.append(t);c2.append(th);g.append(c1,c2);sec.append(g);
+  const c3=card('Monthly category performance',`${CAT_BRAND} · complete month-by-month figures`);c3.style.marginTop='16px';
+  const h=el('div','tbl-scroll'),mt=el('table');mt.innerHTML=`<thead><tr><th>Category</th>${MONTHS.map(m=>`<th>${esc(m)}</th>`).join('')}<th>Total</th></tr></thead>`;
+  const tbody=el('tbody');rows.forEach(r=>tbody.append(rowFromVals(r.n,r.o.monthly,r.o.monthly.reduce((a,b)=>a+b,0))));
+  mt.append(tbody);h.append(mt);c3.append(h);sec.append(c3);
+  const trend=card('Category trend · units per month',`${CAT_BRAND} · compare growth and decline across months`);
+  trend.style.marginTop='16px';
+  const trendWrap=el('div','chart-wrap');
+  const W=Math.max(720,MONTHS.length*76),H=260,left=48,right=14,topY=16,bottom=216;
+  const maxValue=Math.max(1,...rows.flatMap(r=>r.o.monthly));
+  const width=W-left-right,px=i=>left+(MONTHS.length>1?i/(MONTHS.length-1):.5)*width,py=v=>bottom-v/maxValue*(bottom-topY);
+  const palette=['#197A63','#A65B84','#3375BD','#C18A2F','#7756AB','#BF584C','#429498','#717982'];
+  const visible=rows.slice(0,8),lines=visible.map((r,j)=>{
+    const pts=r.o.monthly.map((v,i)=>`${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${palette[j%palette.length]}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><title>${esc(r.n)}</title></polyline>`;
+  }).join('');
+  const ticks=MONTHS.map((m,i)=>`<text x="${px(i)}" y="245" text-anchor="middle" font-size="11" fill="var(--ink-soft)">${esc(m)}</text>`).join('');
+  const guides=[0,.25,.5,.75,1].map(f=>`<line x1="${left}" y1="${py(maxValue*f)}" x2="${W-right}" y2="${py(maxValue*f)}" stroke="var(--line)"/><text x="${left-6}" y="${py(maxValue*f)+4}" text-anchor="end" font-size="10" fill="var(--ink-soft)">${Math.round(maxValue*f)}</text>`).join('');
+  trendWrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="min-width:${W}px;width:100%;height:auto" role="img" aria-label="Monthly category units line chart">${guides}${lines}${ticks}</svg>`;
+  trend.append(trendWrap);
+  const legend=el('div','legend');legend.style.marginTop='12px';visible.forEach((r,i)=>{const tag=el('span','');tag.innerHTML=`<b style="background:${palette[i%palette.length]}"></b>${esc(r.n)}`;legend.append(tag);});trend.append(legend);sec.append(trend);
+  const ra=d.returnAnalysis;
+  if(ra){const rc=card('Return rate by category / product','Based on tracking or order status; rates use identified returned product units divided by ordered units. Unmatched deliveries may understate the rate.');rc.style.marginTop='16px';
+    const choose=el('select','mini-select');choose.innerHTML='<option value="category">By category</option><option value="product">By product</option>';rc.append(choose);
+    const board=el('div','tbl-scroll');board.style.marginTop='12px';rc.append(board);
+    const drawReturns=()=>{const vals=(choose.value==='category'?ra.byCategory:ra.byProduct).filter(r=>CAT_BRAND==='All brands'||r.brand===CAT_BRAND).sort((a,b)=>(b.gross?b.returned/b.gross:0)-(a.gross?a.returned/a.gross:0));
+      const tb=el('table');tb.innerHTML='<thead><tr><th>Brand</th><th>Category / product</th><th>Ordered units</th><th>Returned units</th><th>Identified return %</th></tr></thead>';
+      const body=el('tbody');vals.forEach(r=>{const tr=el('tr');[r.brand,r.name,fmt(r.gross),fmt(r.returned),r.gross?(100*r.returned/r.gross).toFixed(1)+'%':'—'].forEach(x=>{const td=el('td');td.textContent=x;tr.append(td);});body.append(tr);});tb.append(body);board.replaceChildren(tb);};
+    choose.onchange=drawReturns;drawReturns();const foot=el('div','note',`Return analysis: ${fmt(ra.matched)} order rows with status/tracking evidence; ${fmt(ra.unmatched)} order rows with unknown status/tracking. A zero identified return rate does not establish zero returns.`);rc.append(foot);sec.append(rc);
+  }
+  const prodGrid=el('div','grid cols-2');prodGrid.style.marginTop='16px';
+  rows.forEach(r=>{const cardEl=card(r.n+' — best-selling products',`${CAT_BRAND} · ${fmt(r.u)} units`);
+    cardEl.append(barList(Object.entries(r.o.prods).map(([n,v])=>({label:n,value:pick(v)})).filter(x=>x.value>0).sort((x,y)=>y.value-x.value).slice(0,8)));
+    prodGrid.append(cardEl);});sec.append(prodGrid);
+  const uncategorized=Object.values(d.items).filter(o=>o.sheet==='Uncategorized'&&(CAT_BRAND==='All brands'?o.monthly:(o.brands[CAT_BRAND]||empty())).some(v=>v>0));
+  if(uncategorized.length){const audit=card('Sold products missing a category',`Only ${CAT_BRAND} products are shown. Fill the Category cell for these product codes in the Products sheet, then reload your Excel file.`);
+    audit.style.marginTop='16px';const box=el('div','tbl-scroll'),at=el('table');at.innerHTML='<thead><tr><th>Product code</th><th>Product</th><th>Units sold</th></tr></thead>';
+    const bd=el('tbody');uncategorized.sort((x,y)=>pick(CAT_BRAND==='All brands'?y.monthly:(y.brands[CAT_BRAND]||empty()))-pick(CAT_BRAND==='All brands'?x.monthly:(x.brands[CAT_BRAND]||empty()))).forEach(o=>{
+      const tr=el('tr');[o.code,o.name,fmt(pick(CAT_BRAND==='All brands'?o.monthly:(o.brands[CAT_BRAND]||empty())))].forEach(v=>{const td=el('td');td.textContent=v;tr.append(td);});bd.append(tr);});at.append(bd);box.append(at);audit.append(box);sec.append(audit);}
+  if(!rows.length)sec.append(el('div','empty','No sold products found for this brand and month.'));
+  return sec;
+}
+
+/* ---------- Customer Purchases: order-level records and deduplicated customers ---------- */
+const FB={prod:'',ch:'',category:'',brand:'',q:'',group:false};
+const dstr=t=>t?new Date(t).toISOString().slice(0,10):'';
+function secFeedback(d){
+  const sec=el('section','section');sec.id='sec-feedback';
+  sec.append(sectionTitle('','Customer Purchases','Filter by category, brand and month · group contacts by phone number'));
+  const all=d.fb.recs,cardEl=card('Customer purchase records','Purchase data only; no call statuses or feedback notes');
+  const filters=el('div','fb-filters');
+  const makeSelect=(key,values,label)=>{const select=el('select','mini-select');select.title=label;
+    select.innerHTML=[['','All '+label.toLowerCase()],...[...new Set(values.filter(Boolean))].sort().map(v=>[v,v])].map(([v,l])=>`<option value="${esc(v)}"${FB[key]===v?' selected':''}>${esc(l)}</option>`).join('');
+    select.onchange=()=>{FB[key]=select.value;draw();};filters.append(select);};
+  makeSelect('brand',all.map(r=>r.brand),'Brands');makeSelect('category',all.map(r=>r.c),'Categories');
+  makeSelect('prod',all.map(r=>r.p),'Products');makeSelect('ch',all.map(r=>r.ch),'Channels');
+  const group=el('label','fb-chk');const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=FB.group;
+  checkbox.onchange=()=>{FB.group=checkbox.checked;draw();};group.append(checkbox,document.createTextNode(' One row per customer (phone)'));filters.append(group);
+  const search=el('input','search');search.type='search';search.placeholder='Search name, phone, city or product';search.value=FB.q;
+  search.oninput=()=>{FB.q=search.value.trim().toLowerCase();draw();};filters.append(search);
+  const excel=el('button','newfile-btn','Export Excel'),csv=el('button','newfile-btn','Export CSV');filters.append(excel,csv);
+  cardEl.append(filters);const kpis=el('div','grid cols-4');cardEl.append(kpis);
+  const scroll=el('div','tbl-scroll tbl-tall');scroll.style.marginTop='15px';cardEl.append(scroll);
+  const note=el('div','note');cardEl.append(note);sec.append(cardEl);
+  let data=[];
+  function draw(){
+    const term=FB.q;
+    let cur=all.filter(r=>(STATE.month==='all'||r.m===STATE.month)&&(!FB.brand||r.brand===FB.brand)&&(!FB.category||r.c===FB.category)&&(!FB.prod||r.p===FB.prod)&&(!FB.ch||r.ch===FB.ch)&&(!term||[r.nm,r.ph,r.p,r.city].some(x=>String(x||'').toLowerCase().includes(term))));
+    cur.sort((a,b)=>b.t-a.t||a.p.localeCompare(b.p));
+    const customers=new Set(cur.map(r=>r.ph).filter(Boolean));
+    if(FB.group){
+      const groupMap=new Map();
+      cur.forEach((r,i)=>{
+        const key=r.ph||'missing-'+i;
+        let x=groupMap.get(key);
+        if(!x){x={name:r.nm||'',ph:r.ph||'',city:r.city||'',products:new Set(),orders:new Set(),date:r.t,entries:0};groupMap.set(key,x);}
+        x.products.add(r.p);x.orders.add(r.orderKey||r.ch+'|'+r.t+'|'+r.ph);x.entries++;
+        if(r.t>x.date){x.date=r.t;if(r.city)x.city=r.city;}
+        if(!x.name&&r.nm)x.name=r.nm;
+      });
+      data=[...groupMap.values()].map(x=>({'Customer Name':x.name||'Not available','Last Purchase':dstr(x.date),'Products Bought':[...x.products].join('; '),'Purchase Count':x.orders.size,'Contact Number':x.ph||'Not available','City':x.city||'Not available'}));
+    }else{
+      data=cur.map(r=>({'Customer Name':r.nm||'Not available','Purchase Date':dstr(r.t),'Purchased Product':r.p,'Contact Number':r.ph||'Not available','City':r.city||'Not available'}));
+    }
+    const countByCustomer=new Map();cur.forEach(r=>{if(!r.ph)return;const k=r.orderKey||r.ch+'|'+r.t+'|'+r.ph;let set=countByCustomer.get(r.ph);if(!set){set=new Set();countByCustomer.set(r.ph,set);}set.add(k);});
+    kpis.replaceChildren(kpi('Rows',fmt(data.length),FB.group?'One per contact':'One per purchased product',true),kpi('Unique contacts',fmt(customers.size),'valid phone numbers'),kpi('Repeat customers',fmt([...countByCustomer.values()].filter(x=>x.size>1).length),'2+ separate orders'),kpi('Products',fmt(new Set(cur.map(r=>r.p)).size),'within selected filters'));
+    const columns=FB.group?['Customer Name','Last Purchase','Products Bought','Purchase Count','Contact Number','City']:['Customer Name','Purchase Date','Purchased Product','Contact Number','City'];
+    const table=el('table');table.innerHTML='<thead><tr>'+columns.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead>';
+    const body=el('tbody');data.slice(0,500).forEach(r=>{const tr=el('tr');columns.forEach(k=>{const td=el('td');td.textContent=r[k];tr.append(td);});body.append(tr);});table.append(body);scroll.replaceChildren(table);
+    if(!data.length)scroll.append(el('div','empty','No purchases match the filters.'));
+    note.textContent=(data.length>500?'Showing first 500 rows; export for all rows. ':'')+'Purchase counts are distinct order keys. Unknown phone numbers remain separate; they are never merged into one customer. Returned/cancelled order inclusion follows the Sales toggle.';
+  }
+  const fileName=()=>`customer-purchases-${FB.group?'by-customer':'by-product'}-${STATE.month==='all'?'all-months':MONTHS[STATE.month]}`;
+  excel.onclick=()=>{const wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(data);XLSX.utils.book_append_sheet(wb,ws,'Customer Purchases');XLSX.writeFile(wb,fileName()+'.xlsx');};
+  csv.onclick=()=>{const keys=Object.keys(data[0]||{}),quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const content='\ufeff'+[keys.map(quote).join(','),...data.map(r=>keys.map(k=>quote(r[k])).join(','))].join('\n');const blob=new Blob([content],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+  draw();return sec;
+}
+
 /* ---------- sections ---------- */
 const SECTIONS=[
-  {id:'overview', name:'Overview', group:'Overview', build:secOverview, when:d=>!d.isExactExtract},
+  {id:'overview', name:'Overview', group:'Overview', build:secOverview, when:d=>!d.isExactExtract&&!d.isSpecial},
   {id:'split',    name:'Online vs Shop', group:'Sales performance', build:secChannelSplit, when:d=>d.channelSplit},
-  {id:'products', name:'Products', group:'Sales performance', build:secProducts, when:d=>!d.isExactExtract},
-  {id:'ranking', name:'Top & Bottom', group:'Sales performance', build:secRanking, when:d=>!d.isExactExtract},
+  {id:'products', name:'Products', group:'Sales performance', build:secProducts, when:d=>!d.isExactExtract&&!d.isSpecial},
+  {id:'ranking', name:'Top & Bottom', group:'Sales performance', build:secRanking, when:d=>!d.isExactExtract&&!d.isSpecial},
   {id:'people',  name:'Care Agents', group:'Sales performance', build:secPeople, when:d=>d.userMonthly},
   {id:'shops',   name:'Shops', group:'Sales performance', build:secShops, when:d=>d.shopMonthly},
   {id:'payments',name:'Payments & Status', group:'Sales performance', build:secPay, when:d=>d.paymentMonthly},
   {id:'attribution',name:'Channel Attribution', group:'Sales performance', build:secAttribution, when:d=>!!(d.paymentMonthly||d.cityMonthly)},
   {id:'geo',     name:'Cities & Districts', group:'Geography & logistics', build:secGeo, when:d=>d.cityMonthly},
+  {id:'category',name:'Category Performance', group:'Cross-brand', build:secCategory, when:d=>d.isCategory},
+  {id:'feedback',name:'Customer Purchases', group:'Cross-brand', build:secFeedback, when:d=>d.isFeedback},
   {id:'Trackings',name:'Combined Trackings', group:'Cross-brand', build:secExactExtract, when:d=>d.isExactExtract},
   {id:'bis-tracking',name:'BIS Tracking', group:'Cross-brand', build:()=>secTrackDetail('bis'), when:d=>d.isExactExtract&&DATA&&DATA.trackingRaw&&DATA.trackingRaw.bis},
   {id:'lovelab-tracking',name:'Lovelab Tracking', group:'Cross-brand', build:()=>secTrackDetail('lovelab'), when:d=>d.isExactExtract&&DATA&&DATA.trackingRaw&&DATA.trackingRaw.lovelab},
@@ -1959,6 +2106,19 @@ function buildControls(){
   const all=el('button',STATE.month==='all'?'on':'','All');all.onclick=()=>{STATE.month='all';render();};ms.append(all);
   MONTHS.forEach((m,i)=>{const btn=el('button',STATE.month===i?'on':'',m);btn.onclick=()=>{STATE.month=i;render();};ms.append(btn);});
   mountSegPill(ms);
+  const actions=$('#hdrActions');let toggle=$('#salesModeToggle');
+  if(!toggle){toggle=el('button','newfile-btn');toggle.id='salesModeToggle';actions.prepend(toggle);}
+  toggle.textContent=INCLUDE_NONSALES?'Sales: include returned/cancelled':'Sales: exclude returned/cancelled';
+  toggle.title='Click to switch the order inclusion rule; applies to sales, category analysis and purchase records';
+  toggle.onclick=()=>{
+    if(!LAST_WORKBOOK)return;
+    INCLUDE_NONSALES=!INCLUDE_NONSALES;
+    const brand=STATE.brand,ch=STATE.channel,mo=STATE.month;
+    DATA=buildDATA(LAST_WORKBOOK);MONTHS=DATA.meta.months;
+    STATE.brand=DATA.brands[brand]?brand:Object.keys(DATA.brands)[0];
+    STATE.channel=DATA.brands[STATE.brand].channels[ch]?ch:Object.keys(DATA.brands[STATE.brand].channels)[0];STATE.month=mo;
+    $('#dataChip').textContent=DATA.meta.range+' · '+fmt(DATA.meta.orders)+' orders';render();
+  };
 }
 function buildNav(d){
   const nav=$('#sectionNav');nav.innerHTML='';
@@ -1995,6 +2155,7 @@ function updateNavIndicator(instant){
 function activeSections(d){return SECTIONS.filter(s=>!s.when||s.when(d));}
 
 function render(){
+  const savedScroll=window.scrollY;
   setAccent(STATE.brand);
   buildControls();
   const d=cur();
@@ -2005,11 +2166,12 @@ function render(){
     app.innerHTML='';
     activeSections(d).forEach(s=>app.append(s.build(d)));
     app.querySelectorAll('.section-title .num').forEach((n,i)=>n.textContent=String(i+1).padStart(2,'0'));
-    $('#foot').innerHTML=`Data range Jan–Jul 2026 · generated ${DATA.meta.lastUpdated} · ${DATA.meta.note} “Sales” = units sold. City/District coverage is online orders only; care-agent and shop views are staff-side. Bottom-5 shows the lowest sellers among products that had at least one sale in the selected month.`;
+    $('#foot').innerHTML=`Data range ${DATA.meta.range} · generated ${DATA.meta.lastUpdated} · ${DATA.meta.note} “Sales” = units sold under the selected returned/cancelled order rule. City/District coverage is online orders only; care-agent and shop views are staff-side. Bottom-5 shows the lowest sellers among products that had at least one sale in the selected month.`;
     animateCharts(app);
     app.classList.remove('fading');
     // scroll-spy
     spy(d);
+    requestAnimationFrame(()=>window.scrollTo({top:savedScroll,behavior:'instant'}));
   };
   if(firstRender||prefersReducedMotion()){
     firstRender=false;
@@ -2019,11 +2181,14 @@ function render(){
     setTimeout(doUpdate,180);
   }
 }
+let currentSpy=null;
 function spy(d){
+  if(currentSpy){currentSpy.disconnect();currentSpy=null;}
   const links=[...document.querySelectorAll('#sectionNav a')];
   if(links.length&&!links.some(l=>l.classList.contains('on')))links[0].classList.add('on');
   updateNavIndicator(true);
   const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.dataset.sec===e.target.id.replace('sec-','')));updateNavIndicator(false);}});},{rootMargin:'-45% 0px -50% 0px'});
+  currentSpy=obs;
   activeSections(d).forEach(s=>{const t=$('#sec-'+s.id);if(t)obs.observe(t);});
 }
 window.addEventListener('resize',()=>updateNavIndicator(true));
@@ -2045,6 +2210,9 @@ function ymKey(v){
 }
 function sheet(wb,name){const n=wb.SheetNames.find(s=>s.trim().toLowerCase()===name.toLowerCase());return n?XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,blankrows:false}):null;}
 const headerMap=rows=>(rows[0]||[]).map(x=>x==null?'':String(x).trim());
+let INCLUDE_NONSALES=false, LAST_WORKBOOK=null;
+const excludedStatus=x=>/return|cancel|duplicate|void|refund|failed|rejected|move/i.test(String(x||'').trim());
+
 
 function buildDATA(wb){
   const prows=sheet(wb,'products'); if(!prows)throw new Error("missing a 'products' tab.");
@@ -2054,11 +2222,22 @@ function buildDATA(wb){
   for(let r=1;r<prows.length;r++){const row=prows[r];if(!row||row[ci]==null||String(row[ci]).trim()==='')continue;
     const c=String(row[ci]).trim();code2item[c]=String(row[ii]).trim();productCodes.add(c);
     if(li>=0&&row[li]!=null&&String(row[li]).trim()!=='')code2link[c]=String(row[li]).trim();}
-  const arows=sheet(wb,'assigned'), name2assign={};
+  const normProductKey=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
+  const arows=sheet(wb,'assigned'), name2assign={}, norm2assign={};
   if(arows){const aH=headerMap(arows),ai=aH.indexOf('Item'),aa=aH.indexOf('Assign Name');
     if(ai>=0&&aa>=0)for(let r=1;r<arows.length;r++){const row=arows[r];if(!row||row[ai]==null||String(row[ai]).trim()==='')continue;
-      name2assign[String(row[ai]).trim()]=String(row[aa]).trim();}}
-  const assignOf=item=>name2assign[String(item).trim()]||String(item);
+      const item=String(row[ai]).trim(), assigned=String(row[aa]||'').trim()||item;
+      name2assign[item]=assigned;norm2assign[normProductKey(item)]=assigned;}}
+  const assignOf=item=>{const raw=String(item==null?'':item).trim();return name2assign[raw]||norm2assign[normProductKey(raw)]||raw;};
+  // SKU-based lookup: the headings in order sheets identify the sold product.
+  const codeLookup={};
+  const catI=pH.indexOf('Category');
+  for(let r=1;r<prows.length;r++){
+    const row=prows[r];if(!row||row[ci]==null)continue;
+    const code=String(row[ci]).trim(),key=code.toUpperCase();
+    if(!code)continue;
+    codeLookup[key]={code,name:String(row[ii]||code).trim(),category:catI>=0?String(row[catI]||'').trim()||'Uncategorized':'Uncategorized'};
+  }
   const productImageByName=buildProductImageMap(code2item,code2link,name2assign);
 
   const TABS={online:sheet(wb,'biseka_online'),shop:sheet(wb,'biseka_shop'),love:sheet(wb,'lovelab')};
@@ -2073,18 +2252,43 @@ function buildDATA(wb){
   const labels=monthKeys.map(k=>{const p=k.split('-');return MN[+p[1]-1]+(multiYear?" '"+p[0].slice(2):'');});
   const zeros=()=>new Array(L).fill(0);
 
+  const returnByBrand={};
+  const normOrder=v=>String(v==null?'':v).trim().toUpperCase();
+  function trackReturns(rows){
+    const out={};if(!rows)return out;
+    const H=headerMap(rows),oi=H.indexOf('Order Num'),si=H.indexOf('Status'),di=H.indexOf('Date'),ci=H.indexOf('City');
+    if(oi<0||si<0)return out;
+    for(let r=1;r<rows.length;r++){
+      const row=rows[r];if(!row||!normOrder(row[oi]))continue;
+      const k=normOrder(row[oi]);(out[k]=out[k]||[]).push({status:String(row[si]||''),date:di>=0?ymKey(row[di]):null,city:ci>=0?cleanGeo(row[ci]):null});
+    }return out;
+  }
+  function returnFlag(row,H,tm){
+    const si=H.indexOf('Status'),oi=H.indexOf('Order Num'),di=H.indexOf('Date'),ci=H.indexOf('City');
+    const direct=si>=0?String(row[si]||''):'';
+    if(excludedStatus(direct))return /return|refund/i.test(direct)?'returned':'excluded';
+    if(!tm||oi<0)return '';
+    const pool=tm[normOrder(row[oi])]||[];if(!pool.length)return '';
+    const date=di>=0?ymKey(row[di]):null,city=ci>=0?cleanGeo(row[ci]):null;
+    const matched=pool.filter(x=>(!date||!x.date||x.date===date)&&(!city||!x.city||x.city===city));
+    // Reused tracking order numbers without identifying match must not be classified.
+    if(matched.length!==1)return '';
+    return /return|refund/i.test(matched[0].status)?'returned':excludedStatus(matched[0].status)?'excluded':'';
+  }
+  const returnsTrack={Biseka:trackReturns(TRACK.bis),'Love&Lab':trackReturns(TRACK.lovelab)};
   function buildChannel(rows,cfg){
     const H=headerMap(rows), di=H.indexOf('Date');
     const payI=cfg.payment?H.indexOf('Payment Method'):-1, statI=cfg.status?H.indexOf('Status'):-1,
           userI=cfg.userCol?H.indexOf(cfg.userCol):-1, cityI=cfg.geo?H.indexOf('City'):-1,
           distI=cfg.geo?H.indexOf('District'):-1, shopI=cfg.shop?H.indexOf('Shop Name'):-1;
-    const pcols=[];H.forEach((h,i)=>{if(productCodes.has(h)&&!REMOVE.has(h))pcols.push({i,name:code2item[h]});});
+    const pcols=[];H.forEach((h,i)=>{if(codeLookup[String(h).trim().toUpperCase()]&&!REMOVE.has(String(h).trim()))pcols.push({i,name:codeLookup[String(h).trim().toUpperCase()].name});});
     const productMonthly={};pcols.forEach(p=>{if(!productMonthly[p.name])productMonthly[p.name]=zeros();});
     const monthlyUnits=zeros(),monthlyOrders=zeros(),paymentMonthly={},userMonthly={},cityMonthly={},districtMonthly={},shopMonthly={},status={},shopProdTot={};
     let totalUnits=0,totalOrders=0;
     for(let r=1;r<rows.length;r++){const row=rows[r];if(!row)continue;
       if(!row.some(c=>c!=null&&String(c).trim()!==''))continue;
       const mk=ymKey(row[di]), mi=mk!=null?mIdx[mk]:undefined;
+      if(!INCLUDE_NONSALES && (statI>=0 && excludedStatus(row[statI]) || returnFlag(row,H,returnsTrack[cfg.brand]) ))continue;
       totalOrders++;if(mi!==undefined)monthlyOrders[mi]++;
       let ru=0;for(const p of pcols){const q=num(row[p.i]);if(q){ru+=q;if(mi!==undefined)productMonthly[p.name][mi]+=q;}}
       totalUnits+=ru;if(mi!==undefined)monthlyUnits[mi]+=ru;
@@ -2194,11 +2398,110 @@ function buildDATA(wb){
   const regroup=pm=>{const o={};for(const k in pm){const a=assignOf(k);o[a]=o[a]?add(o[a],pm[k]):pm[k].slice();}return o;};
   const regroupFlat=d=>{const o={};for(const k in d){const a=assignOf(k);o[a]=(o[a]||0)+d[k];}return o;};
 
-  const BO=TABS.online?buildChannel(TABS.online,{payment:1,status:1,userCol:'Username',geo:1}):null;
-  const BS=TABS.shop?buildChannel(TABS.shop,{payment:1,userCol:'UserName',shop:1}):null;
-  const LL=TABS.love?buildChannel(TABS.love,{payment:1,status:1,geo:1}):null;
+  const BO=TABS.online?buildChannel(TABS.online,{payment:1,status:1,userCol:'Username',geo:1,brand:'Biseka'}):null;
+  const BS=TABS.shop?buildChannel(TABS.shop,{payment:1,userCol:'UserName',shop:1,brand:'Biseka'}):null;
+  const LL=TABS.love?buildChannel(TABS.love,{payment:1,status:1,geo:1,brand:'Love&Lab'}):null;
   const BIS=TRACK.bis?buildTrackingSheet(TRACK.bis):null;
   const LLT=TRACK.lovelab?buildTrackingSheet(TRACK.lovelab):null;
+    function buildCats(){
+    const items={};
+    [['Biseka',TABS.online],['Biseka',TABS.shop],['Love&Lab',TABS.love]].forEach(([brand,rows])=>{
+      if(!rows)return;
+      const H=headerMap(rows),dateI=H.indexOf('Date');
+      if(dateI<0)return;
+      const cols=[];
+      H.forEach((raw,i)=>{const key=String(raw||'').trim().toUpperCase(),product=codeLookup[key];
+        if(product)cols.push({i,product});
+      });
+      for(let r=1;r<rows.length;r++){
+        const row=rows[r];if(!row)continue;
+        const mk=ymKey(row[dateI]),mi=mIdx[mk];if(mi===undefined)continue;
+        const flag=returnFlag(row,H,returnsTrack[brand]);
+        if(!INCLUDE_NONSALES&&flag)continue;
+        for(const p of cols){const q=num(row[p.i]);if(!(q>0))continue;
+          const product=p.product,key=brand+'|'+product.code;
+          const o=items[key]=items[key]||{name:assignOf(product.name),code:product.code,monthly:zeros(),brands:{},sheet:product.category};
+          o.monthly[mi]+=q;(o.brands[brand]=o.brands[brand]||zeros())[mi]+=q;
+        }
+      }
+    });
+    return items;
+  }
+  function buildReturnAnalysis(){
+    const byProduct={},byCategory={};let matched=0,unmatched=0,flagged=0;
+    [['Biseka',TABS.online],['Biseka',TABS.shop],['Love&Lab',TABS.love]].forEach(([brand,rows])=>{
+      if(!rows)return;const H=headerMap(rows),oi=H.indexOf('Order Num'),si=H.indexOf('Status');
+      const prod=[];H.forEach((h,i)=>{const x=codeLookup[String(h||'').trim().toUpperCase()];if(x)prod.push({i,x});});
+      for(let j=1;j<rows.length;j++){
+        const row=rows[j];if(!row)continue;
+        const flag=returnFlag(row,H,returnsTrack[brand]);
+        const tracked=!!(oi>=0&&returnsTrack[brand]&&returnsTrack[brand][normOrder(row[oi])]);
+        const recognized=flag==='returned'||flag==='excluded'||(si>=0&&String(row[si]||'').trim())||tracked;
+        const qtys=prod.map(p=>({p,q:Math.max(0,num(row[p.i]))})).filter(x=>x.q>0);
+        if(!qtys.length)continue;
+        if(!recognized)unmatched++;else matched++;
+        if(flag==='returned')flagged++;
+        qtys.forEach(({p,q})=>{
+          const key=brand+'|'+p.x.code,cat=brand+'|'+p.x.category;
+          for(const [map,k,title] of [[byProduct,key,assignOf(p.x.name)],[byCategory,cat,p.x.category]]){
+            const a=map[k]=map[k]||{brand,name:title,gross:0,returned:0};
+            a.gross+=q;if(flag==='returned')a.returned+=q;
+          }
+        });
+      }
+    });
+    return {byProduct:Object.values(byProduct),byCategory:Object.values(byCategory),matched,unmatched,flagged};
+  }
+  function normPhone(v){if(v==null)return null;let t=String(typeof v==='number'?Math.round(v):v).replace(/\D/g,'');
+    if(t.length===11&&t.startsWith('94'))t=t.slice(2);if(t.length===9)t='0'+t;return /^0\d{9}$/.test(t)?t:null;}
+  const okey=v=>String(v==null?'':v).trim().toUpperCase();
+  const toMs=v=>v instanceof Date?v.getTime():typeof v==='number'?Math.round((v-25569)*864e5):(Date.parse(String(v))||0);
+  const dstrSafe=t=>t?new Date(t).toISOString().slice(0,10):'';
+  function buildFeedback(){
+    const recs=[],st={orders:0,noTrack:0,noPhone:0,skipped:0};let maxT=0;
+    const trackMap=t=>{const m={};if(!t)return m;
+      const H=headerMap(t),oi=H.indexOf('Order Num'),pi=H.indexOf('Contact Num'),si=H.indexOf('Status'),ci2=H.indexOf('City'),di=H.indexOf('Date');
+      const ni=['Customer Name','Customer','Name'].map(k=>H.indexOf(k)).find(i=>i>=0);
+      if(oi<0)return m;
+      for(let r=1;r<t.length;r++){const row=t[r];if(!row||row[oi]==null)continue;
+        (m[okey(row[oi])]=m[okey(row[oi])]||[]).push({ph:pi>=0?normPhone(row[pi]):null,del:si<0||/^delivered$/i.test(String(row[si]||'').trim()),city:ci2>=0?cleanGeo(row[ci2]):'',t:di>=0?toMs(row[di]):0,nm:ni>=0?String(row[ni]||'').trim():''});
+      }return m;};
+    const pickTrack=(arr,city,t)=>{let best=null,score=Infinity;
+      (arr||[]).forEach(x=>{const s=(x.city===city?0:1000000)+(x.t&&t?Math.abs(x.t-t)/864e5:100);
+        if(s<score){best=x;score=s;}});
+      return best;
+    };
+    const bad=/^(returned|cancel|duplicate|move)/i;
+    const run=(rows,tm,channel)=>{if(!rows)return;
+      const brand=channel.startsWith('Love')?'Love&Lab':'Biseka';
+      const H=headerMap(rows),di=H.indexOf('Date'),oi=H.indexOf(channel==='Biseka Shop'?'Bill No':'Order Num'),si=H.indexOf('Status');
+      if(di<0)return;
+      const ci=H.indexOf('Contact'),c2=H.indexOf('Contact 2'),cityI=H.indexOf('City');
+      const ni=['Customer Name','Customer','Name','Full Name','FB / IG Name','FB Name'].map(k=>H.indexOf(k)).find(i=>i>=0);
+      const prod=[];H.forEach((h,i)=>{const x=codeLookup[String(h||'').trim().toUpperCase()];if(x)prod.push({i,name:assignOf(x.name),cat:x.category});});
+      for(let r=1;r<rows.length;r++){
+        const row=rows[r];if(!row)continue;
+        const mk=ymKey(row[di]),mi=mIdx[mk];if(mi===undefined)continue;
+        st.orders++;
+        if(!INCLUDE_NONSALES&&(si>=0&&bad.test(String(row[si]||'').trim())||returnFlag(row,H,returnsTrack[brand]))){st.skipped++;continue;}
+        const t=toMs(row[di]),city=cityI>=0?cleanGeo(row[cityI]):'';
+        const direct=normPhone(ci>=0?row[ci]:null)||normPhone(c2>=0?row[c2]:null);
+        const arr=oi>=0&&tm?tm[okey(row[oi])]:null;
+        const tracking=arr?pickTrack(arr,city,t):null;
+        const phone=direct||(tracking&&tracking.ph);
+        if(!phone){st.noPhone++;if(!direct&&!tracking&&tm)st.noTrack++;continue;}
+        const name=(ni>=0?String(row[ni]||'').trim():'')||(tracking&&tracking.nm)||'';
+        if(t>maxT)maxT=t;
+        prod.forEach(p=>{const qty=num(row[p.i]);if(!(qty>0))return;
+          recs.push({m:mi,p:p.name,c:p.cat,ch:channel,brand,ph:phone,nm:name,city,qty,t,orderKey:brand+'|'+channel+'|'+okey(oi>=0?row[oi]:r)+'|'+dstrSafe(t),d:tracking?tracking.del:true});
+        });
+      }
+    };
+    run(TABS.online,trackMap(TRACK.bis),'Biseka Online');
+    run(TABS.love,trackMap(TRACK.lovelab),'Love&Lab Online');
+    run(TABS.shop,null,'Biseka Shop');
+    return {recs,stats:st,maxT};
+  }
   const brands={};
   if(BO||BS){
     const ch={};if(BO)ch['Online']=BO;if(BS)ch['Shop']=BS;
@@ -2219,6 +2522,8 @@ function buildDATA(wb){
     brands['Biseka']={channels:ch};
   }
   if(LL){if(LLT)LL.tracking=LLT;brands['Love&Lab']={channels:{Online:LL}};}
+  {const cats=buildCats();if(Object.keys(cats).length)brands['Category Performance']={channels:{'Sales categories':{months:labels,isCategory:true,isSpecial:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{},items:cats,returnAnalysis:buildReturnAnalysis()}}};}
+  {const fb=buildFeedback();if(fb.recs.length)brands['Customer Purchases']={channels:{'Purchase records':{months:labels,isFeedback:true,isSpecial:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{},fb}}};}
   if(BIS||LLT){
     brands['Trackings']={channels:{Tracking:{months:labels,isExactExtract:true,monthlyUnits:zeros(),monthlyOrders:zeros(),productMonthly:{}}}};
   }
@@ -2249,7 +2554,7 @@ function loadWorkbook(file){
   const reader=new FileReader();
   reader.onload=ev=>{try{
       const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
-      DATA=buildDATA(wb); MONTHS=DATA.meta.months; STATE.month='all';
+      LAST_WORKBOOK=wb;DATA=buildDATA(wb); MONTHS=DATA.meta.months; STATE.month='all';
       STATE.brand=Object.keys(DATA.brands)[0];
       STATE.channel=Object.keys(DATA.brands[STATE.brand].channels)[0];
       stopLoadingMessages(); if(skel)skel.style.display='none';
